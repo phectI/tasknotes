@@ -36,7 +36,7 @@ import {
 	getDatePart,
 } from "../utils/dateUtils";
 import { updateToNextScheduledOccurrence } from "../core/recurrence";
-import { processFolderTemplate, TaskTemplateData } from "../utils/folderTemplateProcessor";
+import { processFolderTemplate, TaskTemplateData, FolderTemplateOptions } from "../utils/folderTemplateProcessor";
 
 import TaskNotesPlugin from "../main";
 import type { InterpolationValues, TranslationKey } from "../i18n";
@@ -108,8 +108,16 @@ export class TaskService {
 			applyTaskCreationDefaults: (taskData) =>
 				Promise.resolve(applyTaskCreationDefaultsToData(taskData, this.plugin.settings)),
 			applyTemplate: (taskData) => this.applyTemplate(taskData),
-			processFolderTemplate: (folderTemplate, taskData, date) =>
-				this.processFolderTemplate(folderTemplate, taskData, date),
+			processFolderTemplate: (folderTemplate, taskData, date) => {
+				if (!/\{\{currentNote(?:Path|Title)\}\}/.test(folderTemplate)) {
+					return this.processFolderTemplate(folderTemplate, taskData, date);
+				}
+				const currentFile = this.plugin.app.workspace.getActiveFile();
+				return this.processFolderTemplate(folderTemplate, taskData, date, {
+					path: currentFile?.parent?.path || "",
+					title: currentFile?.basename || "",
+				});
+			},
 			sanitizeTitleForFilename: sanitizeTaskTitleForFilename,
 			sanitizeTitleForStorage: sanitizeTaskTitleForStorage,
 		});
@@ -252,7 +260,8 @@ export class TaskService {
 	private processFolderTemplate(
 		folderTemplate: string,
 		taskData?: TaskCreationData,
-		date: Date = new Date()
+		date: Date = new Date(),
+		currentNote?: FolderTemplateOptions["currentNote"]
 	): string {
 		// Convert TaskCreationData to TaskTemplateData
 		const templateData: TaskTemplateData | undefined = taskData
@@ -271,6 +280,7 @@ export class TaskService {
 		return processFolderTemplate(folderTemplate, {
 			date,
 			taskData: templateData,
+			currentNote,
 			extractProjectBasename: (project) => this.extractProjectBasename(project),
 			extractProjectFilePath: (project) => this.extractProjectFilePath(project),
 		});
@@ -721,14 +731,6 @@ export class TaskService {
 				updatePlan.normalizedValue
 			);
 
-			await this.reconcileMaterializedOccurrenceStatusChange(
-				freshTask,
-				updatePlan.updatedTask,
-				property,
-				freshTask[property],
-				updatePlan.normalizedValue
-			);
-
 			// Step 4: Return authoritative data
 			return updatePlan.updatedTask;
 		} catch (error) {
@@ -753,7 +755,8 @@ export class TaskService {
 	/**
 	 * Run all post-write side effects for a property change WITHOUT performing a
 	 * frontmatter write. This includes: cache update, EVENT_TASK_UPDATED,
-	 * dependent-task UI refresh, webhooks, Google Calendar sync, and auto-archive.
+	 * dependent-task UI refresh, webhooks, Google Calendar sync, auto-archive,
+	 * and materialized occurrence parent reconciliation.
 	 *
 	 * Callers are responsible for having already persisted the change to frontmatter.
 	 */
@@ -783,6 +786,16 @@ export class TaskService {
 				oldValue,
 				newValue,
 			}
+		);
+
+		// Direct file edits and bulk property writes must reconcile occurrence
+		// parents just like updateProperty, without repeating the occurrence write.
+		await this.reconcileMaterializedOccurrenceStatusChange(
+			originalTask,
+			updatedTask,
+			property,
+			oldValue,
+			newValue
 		);
 	}
 
