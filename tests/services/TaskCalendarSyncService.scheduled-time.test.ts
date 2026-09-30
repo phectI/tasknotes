@@ -17,6 +17,7 @@ describe("scheduled-time-only Google Calendar export", () => {
 		path: "Tasks/commitment.md",
 		title: "Commitment",
 		scheduled: "2026-09-10T14:00",
+		timeEstimate: 60,
 		...values,
 	});
 	const run = async <T>(work: Promise<T>): Promise<T> => {
@@ -82,6 +83,21 @@ describe("scheduled-time-only Google Calendar export", () => {
 		"does not export an absent/date-only/invalid scheduled time: %s",
 		async (scheduled) => {
 			const t = task({ scheduled, due: "2026-09-10T10:00", timeEstimate: 60 });
+			tasks = [t];
+			expect(service.shouldSyncTask(t)).toBe(false);
+			await run(service.syncTaskToCalendar(t));
+			expect(google.createEvent).not.toHaveBeenCalled();
+		}
+	);
+	it.each([
+		{ due: undefined, timeEstimate: 0 },
+		{ due: "2026-09-10T10:00", timeEstimate: 0 },
+		{ due: undefined, timeEstimate: undefined },
+		{ due: "2026-09-10T10:00", timeEstimate: undefined },
+	])(
+		"does not export a scheduled reminder without duration: %o",
+		async ({ due, timeEstimate }) => {
+			const t = task({ due, timeEstimate });
 			tasks = [t];
 			expect(service.shouldSyncTask(t)).toBe(false);
 			await run(service.syncTaskToCalendar(t));
@@ -217,6 +233,18 @@ describe("scheduled-time-only Google Calendar export", () => {
 		await run(service.syncTaskToCalendar(tasks[0]));
 		expect(google.updateEvent).toHaveBeenCalledTimes(1);
 	});
+	it("retains the linked event if a positive duration is restored before retry", async () => {
+		google.deleteEvent.mockRejectedValueOnce(new Error("offline"));
+		tasks = [task({ timeEstimate: 0, googleCalendarEventId: "old" })];
+		await run(service.syncTaskToCalendar(tasks[0]));
+		expect(tasks[0].googleCalendarEventId).toBe("old");
+		tasks[0].timeEstimate = 30;
+		await run(service.processDeletionQueue());
+		expect(google.deleteEvent).toHaveBeenCalledTimes(1);
+		expect(tasks[0].googleCalendarEventId).toBe("old");
+		await run(service.syncTaskToCalendar(tasks[0]));
+		expect(google.updateEvent).toHaveBeenCalledTimes(1);
+	});
 	it("startup removes existing date-only links without requiring a changed fingerprint", async () => {
 		tasks = [task({ scheduled: "2026-09-10", googleCalendarEventId: "old" })];
 		await run(service.initializeExternalFileReconciliation());
@@ -261,6 +289,24 @@ describe("scheduled-time-only Google Calendar export", () => {
 			"series",
 			"exception",
 		]);
+		expect(tasks[0].googleCalendarExceptionEventId).toBeUndefined();
+	});
+	it("cleans up linked recurring events when duration is removed", async () => {
+		tasks = [
+			task({
+				timeEstimate: 0,
+				recurrence: "FREQ=DAILY",
+				googleCalendarEventId: "series",
+				googleCalendarExceptionEventId: "exception",
+				googleCalendarExceptionOriginalScheduled: "2026-09-09T14:00",
+			}),
+		];
+		await run(service.syncTaskToCalendar(tasks[0]));
+		expect(google.deleteEvent.mock.calls.map((call: any[]) => call[1])).toEqual([
+			"series",
+			"exception",
+		]);
+		expect(tasks[0].googleCalendarEventId).toBeUndefined();
 		expect(tasks[0].googleCalendarExceptionEventId).toBeUndefined();
 	});
 	it("handles exception-only links during queued recovery", async () => {

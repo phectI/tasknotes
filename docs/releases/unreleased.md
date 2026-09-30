@@ -42,7 +42,7 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
 - (#2147) Added context-menu actions for recording task completion today, on the scheduled date, on the due date, or on a chosen date. The actions can be grouped in a submenu from Appearance settings. See [Completing Tasks](https://tasknotes.dev/features/task-management/#completing-tasks).
   - Rescheduling a recurring task can reactivate affected completed or skipped instances after confirmation. See [Recurring Tasks](https://tasknotes.dev/features/recurring-tasks/).
   - Thanks to @renatomen for the contribution.
-- Added an optional Google Calendar export setting to sync only tasks with a scheduled time. Date-only tasks and due-only tasks stay out of Google Calendar, and removing a scheduled time cleans up the linked event with retries when offline. See [Calendar Integration](https://tasknotes.dev/features/calendar-integration/).
+- Added an optional Google Calendar export setting to sync only tasks with a scheduled time and positive time estimate. Date-only tasks, due-only tasks, and timed reminders without a duration stay out of Google Calendar, and removing eligibility cleans up linked events with retries when offline. See [Calendar Integration](https://tasknotes.dev/features/calendar-integration/).
 
 ## Fixed
 

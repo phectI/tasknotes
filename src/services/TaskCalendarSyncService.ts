@@ -443,7 +443,9 @@ export class TaskCalendarSyncService {
 		}
 
 		const settings = this.plugin.settings.googleCalendarExport;
-		if (settings.onlyScheduledTime) return this.hasScheduledTime(task);
+		if (settings.onlyScheduledTime) {
+			return this.hasScheduledTime(task) && (task.timeEstimate ?? 0) > 0;
+		}
 		switch (settings.syncTrigger) {
 			case "scheduled":
 				return !!task.scheduled;
@@ -2544,6 +2546,9 @@ export class TaskCalendarSyncService {
 		}
 
 		const settings = this.plugin.settings.googleCalendarExport;
+		if (settings.onlyScheduledTime && !this.isTaskCalendarEligible(task)) {
+			return null;
+		}
 		const startInfo = this.parseDateForEvent(task.scheduled);
 
 		let start: { date?: string; dateTime?: string; timeZone?: string };
