@@ -6,12 +6,34 @@ import { createTaskNotesLogger } from "./tasknotesLogger";
 import { parseDateToLocal } from "./dateUtils";
 
 const tasknotesLogger = createTaskNotesLogger({ tag: "Utils/FilenameGenerator" });
+export const MAX_TASK_FILENAME_LENGTH = 241;
 
 function normalizeVaultPath(path: string): string {
 	return path
 		.replace(/\\/g, "/")
 		.replace(/\/+/g, "/")
 		.replace(/^\/+/, "");
+}
+
+function utf8ByteLength(value: string): number {
+	return new TextEncoder().encode(value).length;
+}
+
+function truncateUtf8Bytes(value: string, maximumLength: number): string {
+	let result = "";
+	let byteLength = 0;
+	const encoder = new TextEncoder();
+
+	for (const character of value) {
+		const characterLength = encoder.encode(character).length;
+		if (byteLength + characterLength > maximumLength) {
+			break;
+		}
+		result += character;
+		byteLength += characterLength;
+	}
+
+	return result;
 }
 
 async function vaultPathExists(vault: Vault, path: string): Promise<boolean> {
@@ -214,7 +236,20 @@ export function shouldShowFilenameShortenedNotice(
 	}
 
 	const expectedFilename = sanitizeForFilename(title);
-	return actualFilename.startsWith("task-") && actualFilename !== expectedFilename;
+	if (actualFilename.startsWith("task-") && actualFilename !== expectedFilename) {
+		return true;
+	}
+
+	if (utf8ByteLength(expectedFilename) <= MAX_TASK_FILENAME_LENGTH) {
+		return false;
+	}
+
+	const collisionSuffix = actualFilename.match(/-\d+$/)?.[0];
+	const truncatedFilename = truncateUtf8Bytes(
+		expectedFilename,
+		MAX_TASK_FILENAME_LENGTH - (collisionSuffix ? utf8ByteLength(collisionSuffix) : 0)
+	);
+	return actualFilename === `${truncatedFilename}${collisionSuffix ?? ""}`;
 }
 
 /**
@@ -580,7 +615,10 @@ export async function generateUniqueFilename(
 	}
 
 	// Sanitize inputs
-	const sanitizedFilename = sanitizeForFilename(baseFilename);
+	const sanitizedFilename = truncateUtf8Bytes(
+		sanitizeForFilename(baseFilename),
+		MAX_TASK_FILENAME_LENGTH
+	);
 	if (!sanitizedFilename) {
 		throw new Error("Base filename cannot be sanitized to a valid name");
 	}
@@ -604,7 +642,12 @@ export async function generateUniqueFilename(
 
 		// If not, try appending numbers
 		for (let i = 2; i <= 999; i++) {
-			const candidateFilename = `${sanitizedFilename}-${i}`;
+			const suffix = `-${i}`;
+			const candidatePrefix = truncateUtf8Bytes(
+				sanitizedFilename,
+				MAX_TASK_FILENAME_LENGTH - utf8ByteLength(suffix)
+			);
+			const candidateFilename = `${candidatePrefix}${suffix}`;
 			const candidatePath = normalizeVaultPath(`${sanitizedFolderPath}/${candidateFilename}.md`);
 
 			// Check path length for each candidate

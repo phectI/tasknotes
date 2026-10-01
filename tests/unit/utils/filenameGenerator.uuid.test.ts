@@ -1,4 +1,8 @@
-import { generateTaskFilename } from "../../../src/utils/filenameGenerator";
+import {
+	generateTaskFilename,
+	generateUniqueFilename,
+	MAX_TASK_FILENAME_LENGTH,
+} from "../../../src/utils/filenameGenerator";
 import { TaskNotesSettings } from "../../../src/types/settings";
 
 const UUID_V4_REGEX =
@@ -108,5 +112,23 @@ describe("filenameGenerator - UUID custom template variable", () => {
 		const filename2 = generateTaskFilename(baseContext, settings);
 
 		expect(filename1).not.toBe(filename2);
+	});
+});
+
+describe("filenameGenerator - long task filenames", () => {
+	it("truncates sanitized filenames at the UTF-8 byte limit without splitting characters", async () => {
+		const vault = {
+			getAbstractFileByPath: jest.fn(() => null),
+			adapter: { exists: jest.fn(async () => false) },
+		};
+		const title = `${"a".repeat(240)}界`;
+
+		const filename = await generateUniqueFilename(title, "", vault as any);
+
+		expect(filename).toBe("a".repeat(240));
+		expect(new TextEncoder().encode(filename).length).toBeLessThanOrEqual(
+			MAX_TASK_FILENAME_LENGTH
+		);
+		expect(filename).not.toMatch(/^task-[a-z0-9]+$/);
 	});
 });

@@ -34,6 +34,7 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
 
 ## Fixed
 
+- Long task titles now keep their sanitized filename prefix and truncate at 241 UTF-8 bytes instead of falling back to a generated task ID.
 - (#1849) Fixed context menus stacking on top of each other. Only one menu stays open at a time, and clicking the same indicator again closes its menu. This previously applied to date fields only, and now covers priority, status, recurrence, reminders, task, ICS event, and batch menus.
   - Thanks to @3zra47 for reporting and @YBKF for the contribution.
 
