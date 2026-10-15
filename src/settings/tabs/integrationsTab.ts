@@ -685,6 +685,7 @@ export function renderIntegrationsTab(
 									const oauthService = plugin.oauthService;
 									if (!oauthService) return;
 									await oauthService.disconnect("microsoft");
+									await plugin.microsoftCalendarService?.disconnect();
 									new Notice("Disconnected from Microsoft calendar");
 									void renderMicrosoftCalendarCard();
 								} catch (error) {
@@ -760,6 +761,7 @@ export function renderIntegrationsTab(
 									if (!oauthService) return;
 									credentialControls.persistPendingValues();
 									await oauthService.authenticate("microsoft");
+									await plugin.microsoftCalendarService?.initialize();
 									new Notice("Microsoft calendar connected successfully!");
 									void renderMicrosoftCalendarCard();
 								} catch (error) {
@@ -1008,6 +1010,23 @@ export function renderIntegrationsTab(
 						getValue: () => plugin.settings.googleCalendarExport.createAsAllDay,
 						setValue: async (value: boolean) => {
 							plugin.settings.googleCalendarExport.createAsAllDay = value;
+							save();
+						},
+					})
+			);
+
+			group.addSetting(
+				(setting) =>
+					void configureToggleSetting(setting, {
+						name: translate(
+							"settings.integrations.googleCalendarExport.showAllDayAsFree.name"
+						),
+						desc: translate(
+							"settings.integrations.googleCalendarExport.showAllDayAsFree.description"
+						),
+						getValue: () => plugin.settings.googleCalendarExport.showAllDayAsFree,
+						setValue: async (value: boolean) => {
+							plugin.settings.googleCalendarExport.showAllDayAsFree = value;
 							save();
 						},
 					})
