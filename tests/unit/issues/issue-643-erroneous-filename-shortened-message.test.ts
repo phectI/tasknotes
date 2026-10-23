@@ -79,4 +79,16 @@ describe("Issue #643 - filename shortened notice", () => {
 			)
 		).toBe(false);
 	});
+
+	it("warns when a title-based filename is truncated to the UTF-8 byte limit", () => {
+		const settings = makeSettings({
+			taskFilenameFormat: "title",
+			customFilenameTemplate: "",
+			storeTitleInFilename: true,
+		});
+		const title = "é".repeat(121);
+		const shortenedFilename = "é".repeat(120);
+
+		expect(shouldShowFilenameShortenedNotice(settings, title, shortenedFilename)).toBe(true);
+	});
 });

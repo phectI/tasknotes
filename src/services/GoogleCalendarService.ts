@@ -792,6 +792,10 @@ export class GoogleCalendarService extends CalendarProvider {
 				payload.recurrence = updates.recurrence;
 			}
 
+			if (updates.transparency !== undefined) {
+				payload.transparency = updates.transparency;
+			}
+
 			// Handle start/end updates
 			if (updates.start !== undefined) {
 				if (typeof updates.start === "string") {
