@@ -1959,6 +1959,10 @@ export const pt: TranslationTree = {
 						both: "Ambas (preferir agendada)"
 					}
 				},
+				onlyScheduledTime: {
+					name: "Sincronizar apenas tarefas com horário agendado",
+					description: "Exportar apenas tarefas com data e horário agendados como eventos com horário. Esta opção substitui o gatilho de sincronização e as opções de eventos de dia inteiro. Remover o horário exclui o evento vinculado, mesmo que a exclusão ao apagar a tarefa esteja desativada. Use o botão de sincronização em lote para aplicar isso aos eventos existentes."
+				},
 				allDayEvents: {
 					name: "Criar como eventos de dia inteiro",
 					description: "Quando ativado, tarefas são criadas como eventos de dia inteiro. Quando desativado, usa a estimativa de tempo para a duração."

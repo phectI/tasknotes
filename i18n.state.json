@@ -4856,6 +4856,14 @@
       "source": "24db591af14d4cff7ae54187e9d5098dbc1b0055",
       "translation": "d5b68e9f28e48f3cb5d593705ab4a343341b7c73"
     },
+    "settings.integrations.googleCalendarExport.onlyScheduledTime.name": {
+      "source": "2d90b564149c99d73fc3ee65e9dcf7f9a9de38d3",
+      "translation": "79b7ebdf978c8f1a3fa16af356cff5ac75bc95da"
+    },
+    "settings.integrations.googleCalendarExport.onlyScheduledTime.description": {
+      "source": "f43d5b4b632a80c00afe7ffcd62d1180e3ac0a55",
+      "translation": "b070b281009d039a0af999ccf22055d3e2b27db2"
+    },
     "settings.integrations.googleCalendarExport.allDayEvents.name": {
       "source": "b2c10f8bb15b224af5eebb6ede78a990ee2131a2",
       "translation": "885155c00b140d629d3115db5a5102c5c4039d15"
@@ -14177,6 +14185,14 @@
     "settings.integrations.googleCalendarExport.syncTrigger.options.both": {
       "source": "24db591af14d4cff7ae54187e9d5098dbc1b0055",
       "translation": "c1aaf0010fdb21276c07ab10faa3da4a79c24480"
+    },
+    "settings.integrations.googleCalendarExport.onlyScheduledTime.name": {
+      "source": "2d90b564149c99d73fc3ee65e9dcf7f9a9de38d3",
+      "translation": "5f728ba6da12c6d13d0f1a968276e50135bbd248"
+    },
+    "settings.integrations.googleCalendarExport.onlyScheduledTime.description": {
+      "source": "f43d5b4b632a80c00afe7ffcd62d1180e3ac0a55",
+      "translation": "d97e46a9a82ccc0c1136c16f6dfe027dd0c21f3f"
     },
     "settings.integrations.googleCalendarExport.allDayEvents.name": {
       "source": "b2c10f8bb15b224af5eebb6ede78a990ee2131a2",
@@ -23500,6 +23516,14 @@
       "source": "24db591af14d4cff7ae54187e9d5098dbc1b0055",
       "translation": "f49fb24472d9a38d7a673a53da1145b748367847"
     },
+    "settings.integrations.googleCalendarExport.onlyScheduledTime.name": {
+      "source": "2d90b564149c99d73fc3ee65e9dcf7f9a9de38d3",
+      "translation": "9f7659fbc9e8b49beb697ae8e39cc9b6d4ea9414"
+    },
+    "settings.integrations.googleCalendarExport.onlyScheduledTime.description": {
+      "source": "f43d5b4b632a80c00afe7ffcd62d1180e3ac0a55",
+      "translation": "ee79aa96c58241431cf223798462f9074c418dbf"
+    },
     "settings.integrations.googleCalendarExport.allDayEvents.name": {
       "source": "b2c10f8bb15b224af5eebb6ede78a990ee2131a2",
       "translation": "a53e5d9f074f8f6e9f14a38a11ca84224523504e"
@@ -32821,6 +32845,14 @@
     "settings.integrations.googleCalendarExport.syncTrigger.options.both": {
       "source": "24db591af14d4cff7ae54187e9d5098dbc1b0055",
       "translation": "99b583865d8b28ae27d7e60270c2c2a1957fef94"
+    },
+    "settings.integrations.googleCalendarExport.onlyScheduledTime.name": {
+      "source": "2d90b564149c99d73fc3ee65e9dcf7f9a9de38d3",
+      "translation": "80d4b5fc8346bc68eab7a3e0d829f56cabf18630"
+    },
+    "settings.integrations.googleCalendarExport.onlyScheduledTime.description": {
+      "source": "f43d5b4b632a80c00afe7ffcd62d1180e3ac0a55",
+      "translation": "a79cc689b62c1bbe9fae7bdb08d9bb5be0e994b9"
     },
     "settings.integrations.googleCalendarExport.allDayEvents.name": {
       "source": "b2c10f8bb15b224af5eebb6ede78a990ee2131a2",
@@ -42144,6 +42176,14 @@
       "source": "24db591af14d4cff7ae54187e9d5098dbc1b0055",
       "translation": "4e990e1d882dec106e36f44bc2f27b6cfd120105"
     },
+    "settings.integrations.googleCalendarExport.onlyScheduledTime.name": {
+      "source": "2d90b564149c99d73fc3ee65e9dcf7f9a9de38d3",
+      "translation": "014696e40738c9a7751c220088bbb0ac18787792"
+    },
+    "settings.integrations.googleCalendarExport.onlyScheduledTime.description": {
+      "source": "f43d5b4b632a80c00afe7ffcd62d1180e3ac0a55",
+      "translation": "d052e51b59126282d83d8259b6ae06a9b7f18430"
+    },
     "settings.integrations.googleCalendarExport.allDayEvents.name": {
       "source": "b2c10f8bb15b224af5eebb6ede78a990ee2131a2",
       "translation": "05ab2ccdca7e5011261fc42067170d78fd285e39"
@@ -51465,6 +51505,14 @@
     "settings.integrations.googleCalendarExport.syncTrigger.options.both": {
       "source": "24db591af14d4cff7ae54187e9d5098dbc1b0055",
       "translation": "0ae8bab295319dcbe5678272f23aa550e8d81e96"
+    },
+    "settings.integrations.googleCalendarExport.onlyScheduledTime.name": {
+      "source": "2d90b564149c99d73fc3ee65e9dcf7f9a9de38d3",
+      "translation": "3b70aaf448e1ee00309302175da4a5270bf9b8b2"
+    },
+    "settings.integrations.googleCalendarExport.onlyScheduledTime.description": {
+      "source": "f43d5b4b632a80c00afe7ffcd62d1180e3ac0a55",
+      "translation": "b4db56ea19d9a93ce47536b5d548c06059ed88d0"
     },
     "settings.integrations.googleCalendarExport.allDayEvents.name": {
       "source": "b2c10f8bb15b224af5eebb6ede78a990ee2131a2",
@@ -60788,6 +60836,14 @@
       "source": "24db591af14d4cff7ae54187e9d5098dbc1b0055",
       "translation": "fa03320641ef5c32c83a8b18ac3c391a8068b95b"
     },
+    "settings.integrations.googleCalendarExport.onlyScheduledTime.name": {
+      "source": "2d90b564149c99d73fc3ee65e9dcf7f9a9de38d3",
+      "translation": "8c07178aef0db2726483b924c17ac20e812e7d94"
+    },
+    "settings.integrations.googleCalendarExport.onlyScheduledTime.description": {
+      "source": "f43d5b4b632a80c00afe7ffcd62d1180e3ac0a55",
+      "translation": "db62442fe73b32654d61dec008b78bc6804ee321"
+    },
     "settings.integrations.googleCalendarExport.allDayEvents.name": {
       "source": "b2c10f8bb15b224af5eebb6ede78a990ee2131a2",
       "translation": "373e479da4bafa620b4789642234cb2dc800c400"
@@ -70109,6 +70165,14 @@
     "settings.integrations.googleCalendarExport.syncTrigger.options.both": {
       "source": "24db591af14d4cff7ae54187e9d5098dbc1b0055",
       "translation": "a5c887fc5e2798dd12f65a6b75a6c16623118df2"
+    },
+    "settings.integrations.googleCalendarExport.onlyScheduledTime.name": {
+      "source": "2d90b564149c99d73fc3ee65e9dcf7f9a9de38d3",
+      "translation": "292da7833418e54e6c7ea12d6fc9b212fb40a800"
+    },
+    "settings.integrations.googleCalendarExport.onlyScheduledTime.description": {
+      "source": "f43d5b4b632a80c00afe7ffcd62d1180e3ac0a55",
+      "translation": "e19a720fd521e69f1883554afa355d874c9a80f3"
     },
     "settings.integrations.googleCalendarExport.allDayEvents.name": {
       "source": "b2c10f8bb15b224af5eebb6ede78a990ee2131a2",

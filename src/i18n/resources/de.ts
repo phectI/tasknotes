@@ -1957,6 +1957,10 @@ export const de: TranslationTree = {
 						both: "Beide (geplant bevorzugt)"
 					}
 				},
+				onlyScheduledTime: {
+					name: "Nur Aufgaben mit geplanter Uhrzeit synchronisieren",
+					description: "Nur Aufgaben mit geplantem Datum und Uhrzeit als zeitgebundene Ereignisse exportieren. Überschreibt den Synchronisierungsauslöser und die Optionen für ganztägige Ereignisse. Wird die Uhrzeit entfernt, wird das verknüpfte Ereignis entfernt, auch wenn das Löschen beim Löschen der Aufgabe deaktiviert ist. Verwenden Sie die Schaltfläche für die Massensynchronisierung, um dies auf bestehende Ereignisse anzuwenden."
+				},
 				allDayEvents: {
 					name: "Als Ganztagesereignisse erstellen",
 					description: "Wenn aktiviert, werden Aufgaben als Ganztagesereignisse erstellt. Wenn deaktiviert, wird die Zeitschätzung für die Dauer verwendet."

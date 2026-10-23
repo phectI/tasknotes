@@ -1957,6 +1957,10 @@ export const es: TranslationTree = {
 						both: "Ambas (preferir programada)"
 					}
 				},
+				onlyScheduledTime: {
+					name: "Sincronizar solo tareas con hora programada",
+					description: "Exportar solo tareas con fecha y hora programadas como eventos con hora. Esto anula el disparador de sincronización y las opciones de eventos de todo el día. Si se elimina la hora, también se elimina el evento vinculado, aunque esté desactivada la eliminación al borrar la tarea. Usa el botón de sincronización masiva para aplicar esto a los eventos existentes."
+				},
 				allDayEvents: {
 					name: "Crear como eventos de todo el día",
 					description: "Cuando está habilitado, las tareas se crean como eventos de todo el día. Cuando está deshabilitado, usa la estimación de tiempo para la duración."

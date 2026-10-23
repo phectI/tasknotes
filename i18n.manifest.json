@@ -1213,6 +1213,8 @@
   "settings.integrations.googleCalendarExport.syncTrigger.options.scheduled": "b41cf063eca8243b7b8039af57f2b039fc868668",
   "settings.integrations.googleCalendarExport.syncTrigger.options.due": "4c1aeebc433bcb8eb4b05434619ea3136b785ea8",
   "settings.integrations.googleCalendarExport.syncTrigger.options.both": "24db591af14d4cff7ae54187e9d5098dbc1b0055",
+  "settings.integrations.googleCalendarExport.onlyScheduledTime.name": "2d90b564149c99d73fc3ee65e9dcf7f9a9de38d3",
+  "settings.integrations.googleCalendarExport.onlyScheduledTime.description": "f43d5b4b632a80c00afe7ffcd62d1180e3ac0a55",
   "settings.integrations.googleCalendarExport.allDayEvents.name": "b2c10f8bb15b224af5eebb6ede78a990ee2131a2",
   "settings.integrations.googleCalendarExport.allDayEvents.description": "bf0edca956693c35301b7c1705f79502a9f311b1",
   "settings.integrations.googleCalendarExport.showAllDayAsFree.name": "594d0e773199c2ab1465504fab3d4441058760c6",

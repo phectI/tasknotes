@@ -1957,6 +1957,10 @@ export const fr: TranslationTree = {
 						both: "Les deux (préférer planifiée)"
 					}
 				},
+				onlyScheduledTime: {
+					name: "Synchroniser uniquement les tâches avec une heure planifiée",
+					description: "Exporter uniquement les tâches avec une date et une heure planifiées sous forme d'événements horaires. Cette option remplace le déclencheur de synchronisation et les options d'événements sur toute la journée. La suppression de l'heure supprime l'événement associé, même si la suppression lors de la suppression de la tâche est désactivée. Utilisez le bouton de synchronisation groupée pour appliquer ce réglage aux événements existants."
+				},
 				allDayEvents: {
 					name: "Créer en tant qu'événements journée entière",
 					description: "Lorsqu'activé, les tâches sont créées en tant qu'événements journée entière. Lorsque désactivé, utilise l'estimation de temps pour la durée."
