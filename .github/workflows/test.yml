@@ -2,7 +2,7 @@ name: Test Suite
 
 on:
   push:
-    branches: [ main, develop, v3-maintenance ]
+    branches: [ main, develop, v3-maintenance, custom ]
   pull_request:
     branches: [ main, develop, v3-maintenance ]
 
