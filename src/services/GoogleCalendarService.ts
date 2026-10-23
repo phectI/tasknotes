@@ -721,7 +721,6 @@ export class GoogleCalendarService extends CalendarProvider {
 		calendarId: string,
 		eventId: string,
 		updates: {
-			transparency?: "opaque" | "transparent";
 			title?: string;
 			summary?: string;
 			description?: string;
@@ -893,7 +892,6 @@ export class GoogleCalendarService extends CalendarProvider {
 	async createEvent(
 		calendarId: string,
 		event: {
-			transparency?: "opaque" | "transparent";
 			title?: string;
 			summary?: string;
 			description?: string;
