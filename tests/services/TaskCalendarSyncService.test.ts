@@ -232,6 +232,24 @@ describe("TaskCalendarSyncService", () => {
             expect(syncService.taskToCalendarEvent(timed).transparency).toBe("transparent");
         });
 
+        it("uses task availability to override the all-day default for timed and all-day exports", () => {
+            mockPlugin.settings.googleCalendarExport.showAllDayAsFree = true;
+            const freeTimedTask = { ...task, scheduled: "2026-10-01T10:00:00", availability: "free" };
+            const busyAllDayTask = { ...task, availability: "busy" };
+
+            expect(syncService.taskToCalendarEvent(freeTimedTask).transparency).toBe("transparent");
+            expect(syncService.taskToCalendarEvent(busyAllDayTask).transparency).toBe("opaque");
+        });
+
+        it("uses task availability for detached recurring exceptions and sync fingerprints", () => {
+            const taskWithFreeAvailability = { ...task, availability: "free" };
+
+            expect(syncService.buildRecurringExceptionEvent(taskWithFreeAvailability).transparency).toBe("transparent");
+            expect(syncService.getCalendarRelevantFingerprint(taskWithFreeAvailability)).not.toBe(
+                syncService.getCalendarRelevantFingerprint({ ...task, availability: "busy" })
+            );
+        });
+
         it("supports due-date exports and switching back to Busy", () => {
             Object.assign(mockPlugin.settings.googleCalendarExport, { showAllDayAsFree: true, syncTrigger: "due" });
             const dueTask = { ...task, scheduled: undefined, due: "2026-10-01" };

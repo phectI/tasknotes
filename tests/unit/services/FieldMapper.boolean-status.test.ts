@@ -15,6 +15,12 @@ describe('FieldMapper - boolean status handling', () => {
     });
 
     describe('mapToFrontmatter - writing boolean status', () => {
+        it('preserves Google Calendar availability in frontmatter', () => {
+            const frontmatter = fieldMapper.mapToFrontmatter({ availability: 'free' });
+
+            expect(frontmatter.availability).toBe('free');
+        });
+
         it('should write "true" status as boolean true to frontmatter', () => {
             const taskData: Partial<TaskInfo> = {
                 title: 'Test Task',
@@ -89,6 +95,15 @@ describe('FieldMapper - boolean status handling', () => {
     });
 
     describe('mapFromFrontmatter - reading boolean status', () => {
+        it('maps supported Google Calendar availability values from frontmatter', () => {
+            expect(fieldMapper.mapFromFrontmatter({ availability: 'free' }, 'free.md').availability).toBe('free');
+            expect(fieldMapper.mapFromFrontmatter({ availability: 'busy' }, 'busy.md').availability).toBe('busy');
+        });
+
+        it('ignores unsupported Google Calendar availability values', () => {
+            expect(fieldMapper.mapFromFrontmatter({ availability: 'tentative' }, 'task.md').availability).toBeUndefined();
+        });
+
         it('should convert boolean true from frontmatter to "true" string', () => {
             const frontmatter = {
                 title: 'Test Task',

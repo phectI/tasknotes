@@ -563,6 +563,7 @@ export class TaskCalendarSyncService {
 			title: task.title || "",
 			status: task.status || "",
 			priority: task.priority || "",
+			availability: task.availability || null,
 			archived: !!task.archived,
 			scheduled: task.scheduled || null,
 			due: task.due || null,
@@ -621,6 +622,10 @@ export class TaskCalendarSyncService {
 			title: stringValue("title") || task.title,
 			status: stringValue("status") || task.status,
 			priority: stringValue("priority") || task.priority,
+			availability:
+				fingerprintData.availability === "free" || fingerprintData.availability === "busy"
+					? fingerprintData.availability
+					: undefined,
 			archived:
 				typeof fingerprintData.archived === "boolean"
 					? fingerprintData.archived
@@ -2503,11 +2508,17 @@ export class TaskCalendarSyncService {
 			event.recurrence = [];
 		}
 
-		event.transparency = this.getTaskEventTransparency(event);
+		event.transparency = this.getTaskEventTransparency(event, task);
 		return event;
 	}
 
-	private getTaskEventTransparency(event: CalendarEventPayload): "opaque" | "transparent" {
+	private getTaskEventTransparency(
+		event: CalendarEventPayload,
+		task: TaskInfo
+	): "opaque" | "transparent" {
+		if (task.availability === "free") return "transparent";
+		if (task.availability === "busy") return "opaque";
+
 		return event.start.date && this.plugin.settings.googleCalendarExport.showAllDayAsFree
 			? "transparent"
 			: "opaque";
@@ -2624,7 +2635,7 @@ export class TaskCalendarSyncService {
 			};
 		}
 
-		event.transparency = this.getTaskEventTransparency(event);
+		event.transparency = this.getTaskEventTransparency(event, task);
 		return event;
 	}
 

@@ -69,7 +69,7 @@ export class FieldMapper {
 			frontmatter !== null && typeof frontmatter === "object" && !Array.isArray(frontmatter)
 				? (frontmatter as Record<string, unknown>)
 				: undefined;
-		return mapTaskFromFrontmatter(
+		const mappedTask = mapTaskFromFrontmatter(
 			this.mapping,
 			frontmatterRecord,
 			filePath,
@@ -78,6 +78,10 @@ export class FieldMapper {
 			this.statuses,
 			this.priorities
 		);
+		const availability = frontmatterRecord?.availability;
+		return availability === "free" || availability === "busy"
+			? { ...mappedTask, availability }
+			: mappedTask;
 	}
 
 	/**
@@ -90,7 +94,17 @@ export class FieldMapper {
 		taskTag?: string,
 		storeTitleInFilename?: boolean
 	): Record<string, unknown> {
-		return mapTaskToFrontmatter(this.mapping, taskData, taskTag, storeTitleInFilename, this.userFields);
+		const frontmatter = mapTaskToFrontmatter(
+			this.mapping,
+			taskData,
+			taskTag,
+			storeTitleInFilename,
+			this.userFields
+		);
+		if (taskData.availability === "free" || taskData.availability === "busy") {
+			frontmatter.availability = taskData.availability;
+		}
+		return frontmatter;
 	}
 
 	/**

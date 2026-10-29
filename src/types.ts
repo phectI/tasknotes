@@ -460,6 +460,7 @@ export interface TaskInfo {
 	priority: string;
 	due?: string;
 	scheduled?: string; // Date (YYYY-MM-DD) when task is scheduled to be worked on
+	availability?: "free" | "busy";
 	path: string;
 	archived: boolean;
 	tags?: string[];
