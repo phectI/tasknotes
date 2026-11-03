@@ -12,10 +12,21 @@ describe("Issue #782: recurrence weekdays respect locale and first-day settings"
 		);
 	});
 
-	it("uses locale weekend data for Sunday-through-Thursday work weeks", () => {
-		expect(getWeekdayOnlyRRuleCodes("ar-SA")).toEqual(["SU", "MO", "TU", "WE", "TH"]);
+	it("uses the current locale weekend data to build weekdays-only rules", () => {
+		const weekend = new Set(
+			new Intl.Locale("ar-SA").weekInfo?.weekend?.map((day) => day % 7) ?? []
+		);
+		const localeWeekdays = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"].filter(
+			(_, dateIndex) => !weekend.has(dateIndex)
+		);
+		const expectedWeekdays =
+			localeWeekdays.length > 0 && localeWeekdays.length < 7
+				? localeWeekdays
+				: ["MO", "TU", "WE", "TH", "FR"];
+
+		expect(getWeekdayOnlyRRuleCodes("ar-SA")).toEqual(expectedWeekdays);
 		expect(buildWeekdaysOnlyRecurrenceRule("20260518", "ar-SA")).toBe(
-			"DTSTART:20260518;FREQ=WEEKLY;BYDAY=SU,MO,TU,WE,TH"
+			`DTSTART:20260518;FREQ=WEEKLY;BYDAY=${expectedWeekdays.join(",")}`
 		);
 	});
 

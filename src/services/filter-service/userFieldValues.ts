@@ -294,6 +294,9 @@ export function sortUserFieldGroupKeys(
 			});
 		case "boolean":
 			return keys.sort((a, b) => {
+				if (a === b) return 0;
+				if (a === DEFAULT_GROUP_LABELS.noValue) return -1;
+				if (b === DEFAULT_GROUP_LABELS.noValue) return 1;
 				if (a === "true" && b === "false") return -1;
 				if (a === "false" && b === "true") return 1;
 				return compareStringsWithMissingLast(a, b);

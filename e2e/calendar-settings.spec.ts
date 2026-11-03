@@ -1,5 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { launchObsidian, closeObsidian, type ObsidianApp } from './obsidian';
+import {
+  launchObsidian,
+  closeObsidian,
+  closeObsidianSettings,
+  openTaskNotesSettings,
+  type ObsidianApp,
+} from './obsidian';
 
 let app: ObsidianApp;
 const BASE = 'TaskNotes/Views/e2e-calendar-settings.base';
@@ -7,6 +13,19 @@ const PREFIX = 'TaskNotes/E2E settings';
 
 test.beforeAll(async () => { app = await launchObsidian(); });
 test.afterAll(async () => { if (app) await closeObsidian(app); });
+
+test('shows the scheduled-time-only option in Google Calendar export settings', async () => {
+  const settingsPage = await openTaskNotesSettings(app.page, 'Integrations');
+  try {
+    const setting = settingsPage
+      .locator('.setting-item.mod-toggle')
+      .filter({ hasText: 'Only sync tasks with a scheduled time' });
+    await expect(setting).toBeVisible();
+    await expect(setting.locator('input[type="checkbox"]')).toBeVisible();
+  } finally {
+    await closeObsidianSettings(app.page, settingsPage);
+  }
+});
 
 test('legacy calendar keys keep their rendering when opening the grouped settings', async () => {
   const page = app.page;

@@ -39,3 +39,4 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
 ## Fixed
 
 - Fixed title-based filename notices to distinguish UTF-8 byte-limit truncation from filename sanitization.
+- Fixed boolean user-field groups so the no-value bucket sorts before `true` and `false`.

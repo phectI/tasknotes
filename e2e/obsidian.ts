@@ -116,7 +116,7 @@ export async function setObsidianViewport(
 /** Obsidian 1.13 uses a separate Settings window; older versions use a modal. */
 export async function openObsidianSettings(page: Page): Promise<Page> {
   await page.bringToFront();
-  await page.keyboard.press('Control+,');
+  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+,' : 'Control+,');
   let settingsPage: Page | undefined;
   await expect.poll(async () => {
     for (const candidate of page.context().pages()) {
@@ -472,7 +472,7 @@ export async function launchObsidian(): Promise<ObsidianApp> {
     // Verify TaskNotes is loaded by checking for its ribbon icon or commands
     // Try to verify the plugin is active by checking command availability
     try {
-      await page.keyboard.press('Control+p');
+      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+p' : 'Control+p');
       await page.waitForSelector('.prompt', { timeout: 5000 });
       const promptInput = page.locator('.prompt-input');
       await promptInput.fill('TaskNotes');
