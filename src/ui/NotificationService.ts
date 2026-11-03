@@ -1,3 +1,11 @@
+import { uiData } from "../i18n/dataText";
+import type { MessageSuffix } from "../i18n/concepts";
+import { uiLocale } from "../i18n/runtime";
+import { uiNumber } from "../i18n/formatters";
+import { reminderDescriptionLabel } from "../i18n/dataSeedLabels";
+import { uiText } from "../i18n/runtime";
+import { msg } from "@lingui/core/macro";
+import { messageForKey } from "../i18n/messages";
 import { TFile, EventRef, Events } from "obsidian";
 import TaskNotesPlugin from "../main";
 import { TaskInfo, Reminder, EVENT_TASK_UPDATED } from "../types";
@@ -8,6 +16,25 @@ import { showNotice } from "../ui/notifications";
 import { isTaskInstanceCompleted } from "../utils/taskInstanceStatus";
 
 const tasknotesLogger = createTaskNotesLogger({ tag: "Services/NotificationService" });
+
+/**
+ * Windows silently drops system notifications whose tag is longer than about
+ * 44 characters (#2061), so a reminder's tag is a short hash of its task path
+ * and reminder id rather than the raw values.
+ */
+export function reminderNotificationTag(taskPath: string, reminderId: string): string {
+	const key = `${taskPath}\u0000${reminderId}`;
+	// Two independent 32-bit hashes (djb2 and FNV-1a) keep collisions negligible.
+	let djb2 = 5381;
+	let fnv = 0x811c9dc5;
+	for (let i = 0; i < key.length; i++) {
+		const code = key.charCodeAt(i);
+		djb2 = Math.imul(djb2, 33) ^ code;
+		fnv = Math.imul(fnv ^ code, 0x01000193);
+	}
+	const hex = (value: number) => (value >>> 0).toString(16).padStart(8, "0");
+	return `tasknotes-${hex(djb2)}${hex(fnv)}`;
+}
 
 interface NotificationQueueItem {
 	taskPath: string;
@@ -405,14 +432,14 @@ export class NotificationService {
 	): Promise<void> {
 		const message = missed
 			? this.generateMissedMessage(task, item)
-			: item.reminder.description || this.generateDefaultMessage(task, item.reminder);
+			: reminderDescriptionLabel(item.reminder.description || "") || this.generateDefaultMessage(task, item.reminder);
 
 		if (this.plugin.settings.notificationType === "system") {
 			// System notification
 			if ("Notification" in window && Notification.permission === "granted") {
-				const notification = new Notification(task.title || "TaskNotes Reminder", {
+				const notification = new Notification(task.title || uiText(msg({ message: "TaskNotes Reminder", context: "ui/NotificationService: NotificationService.deliverNotification display" })), {
 					body: message,
-					tag: `tasknotes-${item.taskPath}-${item.reminder.id}`,
+					tag: reminderNotificationTag(item.taskPath, item.reminder.id),
 				});
 
 				// Open task note when notification is clicked
@@ -562,8 +589,8 @@ export class NotificationService {
 	}
 
 	async sendTestReminderNotification(): Promise<void> {
-		const title = "TaskNotes Reminder";
-		const message = "This is a test reminder from TaskNotes.";
+		const title = uiText(msg({ message: "TaskNotes Reminder", context: "ui/NotificationService: NotificationService.sendTestReminderNotification display" }));
+		const message = uiText(msg({ message: "This is a test reminder from TaskNotes.", context: "ui/NotificationService: NotificationService.sendTestReminderNotification display" }));
 
 		this.playNotificationSound();
 
@@ -607,19 +634,15 @@ export class NotificationService {
 
 	private generateDefaultMessage(task: TaskInfo, reminder: Reminder): string {
 		if (reminder.type === "absolute") {
-			return `Reminder: ${task.title}`;
-		} else {
-			const anchor = reminder.relatedTo === "due" ? "due" : "scheduled";
-			const offset = this.formatDurationForDisplay(reminder.offset || "");
-
-			if (offset.startsWith("-")) {
-				return `${task.title} is ${anchor} in ${offset.substring(1)}`;
-			} else if (offset === "PT0S" || offset === "PT0M") {
-				return `${task.title} is ${anchor} now`;
-			} else {
-				return `${task.title} was ${anchor} ${offset} ago`;
-			}
+			return uiText(msg({ message: "Reminder: {title}", context: "ui/NotificationService: NotificationService.generateDefaultMessage display" }), { title: task.title });
 		}
+		const offset = this.parseISO8601Duration(reminder.offset || "PT0S") ?? 0;
+		return uiText(msg({ message: "{anchor, select, due {{timing, select, before {{title} is due in {duration}} after {{title} was due {duration} ago} other {{title} is due now}}} other {{timing, select, before {{title} is scheduled in {duration}} after {{title} was scheduled {duration} ago} other {{title} is scheduled now}}}}", context: "relative reminder notification" }), {
+			title: task.title,
+			anchor: reminder.relatedTo,
+			timing: offset < 0 ? "before" : offset > 0 ? "after" : "now",
+			duration: this.formatDurationForDisplay(reminder.offset || "PT0S"),
+		});
 	}
 
 	private generateMissedMessage(task: TaskInfo, item: NotificationQueueItem): string {
@@ -629,7 +652,7 @@ export class NotificationService {
 			: this.translateMissed("prefixToday", { time: missedAt.time });
 		const withPrefix = (text: string) => this.translateMissed("message", { prefix, text });
 		const { reminder } = item;
-		if (reminder.description) return withPrefix(reminder.description);
+		if (reminder.description) return withPrefix(reminderDescriptionLabel(reminder.description));
 
 		const anchorStr = reminder.type === "relative"
 			? (reminder.relatedTo === "due" ? task.due : task.scheduled)
@@ -652,8 +675,8 @@ export class NotificationService {
 		);
 	}
 
-	private translateMissed(key: string, params?: InterpolationValues): string {
-		return this.plugin.i18n.translate(`services.notification.missed.${key}`, params);
+	private translateMissed(key: MessageSuffix<"services.notification.missed.">, params?: InterpolationValues): string {
+		return this.plugin.i18n.translate(messageForKey(`services.notification.missed.${key}`), params);
 	}
 
 	/** Day is omitted for today. */
@@ -662,32 +685,23 @@ export class NotificationService {
 		return {
 			day: date.toDateString() === new Date().toDateString()
 				? null
-				: date.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
-			time: date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }),
+				: date.toLocaleDateString(uiLocale(), { month: "short", day: "numeric" }),
+			time: date.toLocaleTimeString(uiLocale(), { hour: "numeric", minute: "2-digit" }),
 		};
 	}
 
 	private formatDurationForDisplay(duration: string): string {
 		const ms = this.parseISO8601Duration(duration);
-		if (ms === null) return duration;
+		if (ms === null) return uiData(duration, "Invalid/unsupported stored ISO duration; preserve user data for diagnosis");
 
 		const absMs = Math.abs(ms);
 		const minutes = Math.floor(absMs / (60 * 1000));
 		const hours = Math.floor(absMs / (60 * 60 * 1000));
 		const days = Math.floor(absMs / (24 * 60 * 60 * 1000));
 
-		let result = "";
-		if (days > 0) {
-			result = `${days} day${days > 1 ? "s" : ""}`;
-		} else if (hours > 0) {
-			result = `${hours} hour${hours > 1 ? "s" : ""}`;
-		} else if (minutes > 0) {
-			result = `${minutes} minute${minutes > 1 ? "s" : ""}`;
-		} else {
-			result = "now";
-		}
-
-		return ms < 0 ? `-${result}` : result;
+		const unit = days > 0 ? "day" : hours > 0 ? "hour" : minutes > 0 ? "minute" : "second";
+		const value = days || hours || minutes || absMs / 1000;
+		return uiNumber(value, { style: "unit", unit, unitDisplay: "long" });
 	}
 
 	// Public method to manually refresh reminders (useful for testing)

@@ -1,4 +1,16 @@
-import { normalizePath, TFile, Vault, App, parseYaml, stringifyYaml } from "obsidian";
+import { taskInfoTitle } from "../i18n/taskInfoTitle";
+import { uiDuration } from "../i18n/formatters";
+import { uiData } from "../i18n/dataText";
+import { recurrenceDisplayText } from "../i18n/recurrence";
+import {
+	normalizePath,
+	TFile,
+	Vault,
+	App,
+	parseYaml,
+	stringifyYaml,
+	getFrontMatterInfo,
+} from "obsidian";
 import { format } from "date-fns";
 import { TimeInfo, TaskInfo, TimeEntry, TimeBlock, DailyNoteFrontmatter } from "../types";
 import { FieldMapper } from "../core/FieldMapper";
@@ -10,7 +22,6 @@ import {
 	getEffectiveTaskStatus as getEffectiveTaskStatusCore,
 	getFiniteRecurringInstanceCount as getFiniteRecurringInstanceCountCore,
 	getNextUncompletedOccurrence as getNextUncompletedOccurrenceCore,
-	getRecurrenceDisplayText as getRecurrenceDisplayTextCore,
 	getRecurringTaskCompletionText as getRecurringTaskCompletionTextCore,
 	isDueByRRule as isDueByRRuleCore,
 	shouldShowRecurringTaskOnDate as shouldShowRecurringTaskOnDateCore,
@@ -46,18 +57,13 @@ function getWindowMoment(input?: string | Date): ObsidianMoment {
  * Extracts frontmatter from a markdown file content using Obsidian's native parser
  */
 function extractFrontmatter(content: string): unknown {
-	if (!content.startsWith("---")) {
+	const info = getFrontMatterInfo(content);
+	if (!info.exists) {
 		return {};
 	}
 
-	const endOfFrontmatter = content.indexOf("---", 3);
-	if (endOfFrontmatter === -1) {
-		return {};
-	}
-
-	const frontmatterText = content.substring(3, endOfFrontmatter);
 	try {
-		return parseYaml(frontmatterText) || {};
+		return parseYaml(info.frontmatter) || {};
 	} catch (error) {
 		tasknotesLogger.error("Error parsing frontmatter:", {
 			category: "validation",
@@ -195,16 +201,7 @@ export function getActiveTimeEntry(timeEntries: TimeEntry[]): TimeEntry | null {
  * Format time in minutes to a readable string (e.g., "1h 30m", "45m")
  */
 export function formatTime(minutes: number): string {
-	if (!minutes || minutes === 0 || isNaN(minutes)) {
-		return "0m";
-	}
-
-	const hours = Math.floor(minutes / 60);
-	const mins = minutes % 60;
-
-	if (hours === 0) return `${mins}m`;
-	if (mins === 0) return `${hours}h`;
-	return `${hours}h ${mins}m`;
+	return uiDuration(Number.isFinite(minutes) ? minutes : 0);
 }
 
 /**
@@ -316,7 +313,7 @@ export function extractTaskInfo(
 
 			// Ensure required fields have defaults
 			const taskInfo: TaskInfo = {
-				title: mappedTask.title || "Untitled task",
+				title: taskInfoTitle(mappedTask.title),
 				status: mappedTask.status || defaultStatus || "open",
 				priority: mappedTask.priority || "normal",
 				due: mappedTask.due,
@@ -344,7 +341,7 @@ export function extractTaskInfo(
 			const mappedTask = defaultMapper.mapFromFrontmatter(yaml, path, storeTitleInFilename);
 
 			return {
-				title: mappedTask.title || "Untitled task",
+				title: taskInfoTitle(mappedTask.title),
 				status: mappedTask.status || defaultStatus || "open",
 				priority: mappedTask.priority || "normal",
 				due: mappedTask.due,
@@ -368,7 +365,7 @@ export function extractTaskInfo(
 	}
 
 	// Fallback to basic info from filename
-	const filename = path.split("/").pop()?.replace(".md", "") || "Untitled";
+	const filename = taskInfoTitle(path.split("/").pop()?.replace(".md", ""));
 	return {
 		title: filename,
 		status: defaultStatus || "open",
@@ -507,7 +504,7 @@ export function updateToNextScheduledOccurrence(
  * Converts rrule string to human-readable text
  */
 export function getRecurrenceDisplayText(recurrence: string): string {
-	return getRecurrenceDisplayTextCore(recurrence);
+	return recurrenceDisplayText(recurrence);
 }
 
 /**
@@ -526,7 +523,7 @@ export function extractNoteInfo(
 	createdDate?: string;
 	lastModified?: number;
 } | null {
-	let title = path.split("/").pop()?.replace(".md", "") || "Untitled";
+	let title = path.split("/").pop()?.replace(".md", "") || "";
 	let tags: string[] = [];
 	let createdDate: string | undefined = undefined;
 	let lastModified: number | undefined = file?.stat.mtime;
@@ -563,7 +560,7 @@ export function extractNoteInfo(
 	}
 
 	// Look for first heading in the content as a fallback title
-	if (title === "Untitled") {
+	if (!title || title === uiData("Untitled", "Canonical Obsidian filename seed, never a translated display sentinel")) {
 		const headingMatch = content.match(/^#\s+(.+)$/m);
 		if (headingMatch && headingMatch[1]) {
 			title = headingMatch[1].trim();
@@ -976,20 +973,17 @@ async function updateDailyNoteFrontmatter(
 	frontmatter: DailyNoteFrontmatterWithTimeblocks,
 	originalContent: string
 ): Promise<void> {
-	// Get body content (everything after frontmatter)
-	let bodyContent = originalContent;
-	if (originalContent.startsWith("---")) {
-		const endOfFrontmatter = originalContent.indexOf("---", 3);
-		if (endOfFrontmatter !== -1) {
-			bodyContent = originalContent.substring(endOfFrontmatter + 3);
-		}
-	}
+	// Get body content (everything after frontmatter), using Obsidian's own fence
+	// detection so a `---` inside a frontmatter value can't be mistaken for the
+	// closing fence.
+	const info = getFrontMatterInfo(originalContent);
+	const body = info.exists ? originalContent.slice(info.contentStart) : originalContent;
 
 	// Convert frontmatter back to YAML
 	const frontmatterText = stringifyYaml(frontmatter);
 
 	// Reconstruct file content
-	const newContent = `---\n${frontmatterText}---${bodyContent}`;
+	const newContent = `---\n${frontmatterText}---\n${body}`;
 
 	// Write back to file
 	await modifyVaultFile(app, dailyNote, newContent);

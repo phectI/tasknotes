@@ -31,3 +31,11 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
 ```
 
 -->
+
+## Added
+
+- Added a per-task Google Calendar availability override through the `availability` frontmatter property (`free` or `busy`) and an option to sync only tasks with a scheduled date and time. See [Calendar Integration](https://tasknotes.dev/features/calendar-integration/#google-calendar-task-availability).
+
+## Fixed
+
+- Fixed title-based filename notices to distinguish UTF-8 byte-limit truncation from filename sanitization.

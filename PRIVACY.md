@@ -1,6 +1,6 @@
 # TaskNotes Privacy Policy
 
-Last updated: July 11, 2026
+Last updated: October 4, 2026
 
 ## Overview
 
@@ -27,6 +27,7 @@ Optional network features:
 - ICS subscriptions: fetches events from configured ICS URLs.
 - Webhooks: sends event payloads to webhook endpoints you configure.
 - API docs UI (`/api/docs/ui`): loads Swagger UI assets from `unpkg.com` in your browser.
+- Downloadable interface languages (experimental builds only): builds explicitly configured with a language-pack host download the selected language, or the system language when selected, if a compatible local pack is unavailable. English is bundled. Packs are validated and cached locally for offline use; there is no periodic refresh. Requests identify the catalogue version and language but do not send notes, tasks, or other vault content. The host receives normal connection metadata, such as your IP address. Ordinary builds bundle all supported languages and do not make these requests.
 
 ## OAuth Credentials and Tokens
 
@@ -36,12 +37,19 @@ Optional network features:
 - Secret Storage is local to the Obsidian installation and vault, so another device may require its own credentials and calendar connection.
 - You can disconnect providers at any time to revoke TaskNotes access. Disconnecting retains the OAuth app credentials for reconnection; **Forget saved credentials** removes them from Secret Storage.
 
+## ICS Subscription Credentials
+
+- Passwords for authenticated ICS subscriptions are stored in Obsidian Secret Storage and are not written to `data.json`. The username is stored with the subscription settings.
+- Credentials are sent only to the subscription's `https://` URL.
+- Deleting the subscription, or setting its authentication to **None**, removes the saved password.
+
 ## Third-Party Services (When Enabled)
 
 - Google APIs: https://policies.google.com/privacy
 - Microsoft APIs: https://privacy.microsoft.com/privacystatement
 - GitHub: https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement
 - Any ICS host or webhook endpoint you configure
+- The language-pack host configured by the distributor of an experimental downloadable-language build
 
 ## What TaskNotes Does Not Do
 

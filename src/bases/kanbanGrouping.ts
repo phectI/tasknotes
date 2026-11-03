@@ -1,3 +1,6 @@
+import { uiNumber } from "../i18n/formatters";
+
+import { NONE_GROUP_KEY, TRUE_GROUP_KEY, FALSE_GROUP_KEY } from "./groupKeys";
 import type { PriorityConfig, StatusConfig, TaskInfo } from "../types";
 import { stringifyUnknown } from "../utils/stringUtils";
 import { stripPropertyPrefix } from "./sortOrderUtils";
@@ -170,13 +173,13 @@ export function formatKanbanColumnCount(
 	const normalizedLimit = normalizeWipLimitValue(wipLimit);
 	if (normalizedLimit === null) {
 		return {
-			text: ` (${taskCount})`,
+			text: ` (${uiNumber(taskCount)})`,
 			isExceeded: false,
 		};
 	}
 
 	return {
-		text: ` (${taskCount}/${normalizedLimit})`,
+		text: ` (${uiNumber(taskCount)}/${uiNumber(normalizedLimit)})`,
 		isExceeded: taskCount > normalizedLimit,
 	};
 }
@@ -347,7 +350,7 @@ export function findKanbanStatusConfigForGroupKey(
 	getStatusGroupKeyAliases: (statusConfig: StatusConfig) => ReadonlySet<string>
 ): StatusConfig | undefined {
 	const normalizedGroupKey = groupKey.trim();
-	if (!normalizedGroupKey || normalizedGroupKey === "None") {
+	if (!normalizedGroupKey || normalizedGroupKey === NONE_GROUP_KEY) {
 		return undefined;
 	}
 
@@ -376,7 +379,7 @@ export function canonicalizeKanbanConfiguredGroupKey(options: {
 	normalizePriorityValue: (value: string) => string;
 	getStatusGroupKeyAliases: (statusConfig: StatusConfig) => ReadonlySet<string>;
 }): string {
-	if (options.groupKey.trim() === "None") {
+	if (options.groupKey.trim() === NONE_GROUP_KEY) {
 		return options.groupKey;
 	}
 
@@ -449,7 +452,7 @@ export function addEmptyKanbanPriorityGroups(
 }
 
 export function valueToKanbanGroupString(value: unknown): string {
-	if (value === null || value === undefined) return "None";
+	if (value === null || value === undefined) return NONE_GROUP_KEY;
 
 	if (typeof value === "object" && value !== null && typeof value.toString === "function") {
 		const basesValue = value as BasesDisplayValue;
@@ -457,28 +460,28 @@ export function valueToKanbanGroupString(value: unknown): string {
 			basesValue.constructor?.name === "NullValue" ||
 			(basesValue.isTruthy && !basesValue.isTruthy())
 		) {
-			return "None";
+			return NONE_GROUP_KEY;
 		}
 
 		if (basesValue.constructor?.name === "ListValue" || Array.isArray(basesValue.value)) {
 			const arr = basesValue.value || [];
-			if (arr.length === 0) return "None";
+			if (arr.length === 0) return NONE_GROUP_KEY;
 			return arr.map((entry) => valueToKanbanGroupString(entry)).join(", ");
 		}
 
 		const str = basesValue.toString();
-		return str || "None";
+		return str || NONE_GROUP_KEY;
 	}
 
-	if (typeof value === "string") return value || "None";
+	if (typeof value === "string") return value || NONE_GROUP_KEY;
 	if (typeof value === "number") return String(value);
-	if (typeof value === "boolean") return value ? "True" : "False";
+	if (typeof value === "boolean") return value ? TRUE_GROUP_KEY : FALSE_GROUP_KEY;
 	if (Array.isArray(value)) {
 		return value.length > 0
 			? value.map((entry) => valueToKanbanGroupString(entry)).join(", ")
-			: "None";
+			: NONE_GROUP_KEY;
 	}
-	return stringifyUnknown(value) || "None";
+	return stringifyUnknown(value) || NONE_GROUP_KEY;
 }
 
 export function valueToKanbanListGroupKeys(value: unknown): string[] {
@@ -500,8 +503,8 @@ export function valueToKanbanListGroupKeys(value: unknown): string[] {
 
 	const keys = values
 		.map((item) => valueToKanbanGroupString(item))
-		.filter((key) => key !== "None");
-	return keys.length > 0 ? Array.from(new Set(keys)) : ["None"];
+		.filter((key) => key !== NONE_GROUP_KEY);
+	return keys.length > 0 ? Array.from(new Set(keys)) : [NONE_GROUP_KEY];
 }
 
 function sortKanbanGroupsByTaskOrder(
@@ -553,7 +556,7 @@ function addKanbanTaskToGroup(
 
 export function getKanbanSwimLaneKeys(options: KanbanSwimLaneKeyOptions): string[] {
 	if (!options.swimLanePropertyId) {
-		return ["None"];
+		return [NONE_GROUP_KEY];
 	}
 
 	const cleanSwimlane = stripPropertyPrefix(options.swimLanePropertyId);
@@ -708,8 +711,8 @@ export function getVisibleKanbanSwimLaneColumnKeys<TTask>(
 }
 
 export function compareKanbanSpecialColumnKeys(a: string, b: string): number {
-	if (a === "None" && b !== "None") return 1;
-	if (b === "None" && a !== "None") return -1;
+	if (a === NONE_GROUP_KEY && b !== NONE_GROUP_KEY) return 1;
+	if (b === NONE_GROUP_KEY && a !== NONE_GROUP_KEY) return -1;
 	return a.localeCompare(b);
 }
 
@@ -884,6 +887,41 @@ export function applyKanbanSwimLaneOrder(options: {
 	return [...ordered, ...unordered];
 }
 
+/**
+ * Moves a dragged swimlane onto a target swimlane. The DOM only holds the rows that
+ * are rendered, so the move is made within `visibleOrder` and then written back into
+ * the visible slots of `currentOrder`; rows hidden by search or by "hide empty
+ * swimlanes" keep their positions. Returns null when the drop changes nothing.
+ */
+export function reorderKanbanSwimLaneKeys(options: {
+	currentOrder: readonly string[];
+	visibleOrder: readonly string[];
+	draggedKey: string;
+	targetKey: string;
+}): string[] | null {
+	const { draggedKey, targetKey } = options;
+	const visibleOrder = Array.from(new Set(options.visibleOrder));
+	const dragIndex = visibleOrder.indexOf(draggedKey);
+	const dropIndex = visibleOrder.indexOf(targetKey);
+	if (draggedKey === targetKey || dragIndex === -1 || dropIndex === -1) {
+		return null;
+	}
+
+	const reorderedVisible = [...visibleOrder];
+	reorderedVisible.splice(dragIndex, 1);
+	reorderedVisible.splice(dropIndex, 0, draggedKey);
+
+	const visibleSet = new Set(reorderedVisible);
+	const result: string[] = [];
+	let visibleCursor = 0;
+	for (const key of new Set(options.currentOrder)) {
+		result.push(visibleSet.has(key) ? reorderedVisible[visibleCursor++] : key);
+	}
+	result.push(...reorderedVisible.slice(visibleCursor));
+
+	return result;
+}
+
 export function createEmptyKanbanSwimLaneColumns<TTask>(
 	columnKeys: readonly string[]
 ): Map<string, TTask[]> {
@@ -902,6 +940,8 @@ export function applyKanbanSwimLaneOrderToMap<TTask>(options: {
 	columnKeys: readonly string[];
 	swimLaneOrders: Readonly<Record<string, readonly string[]>>;
 	hideEmptySwimLanes: boolean;
+	/** Lanes that have tasks, but none matching the current search. */
+	searchHiddenKeys?: ReadonlySet<string>;
 	priorityKeys: readonly string[];
 	isPriorityField: (propertyId: string | null) => boolean;
 	isStatusField: (propertyId: string | null) => boolean;
@@ -927,6 +967,7 @@ export function applyKanbanSwimLaneOrderToMap<TTask>(options: {
 	const orderedSwimLanes = new Map<string, Map<string, TTask[]>>();
 
 	for (const swimLaneKey of orderedKeys) {
+		if (options.searchHiddenKeys?.has(swimLaneKey)) continue;
 		const columns =
 			options.swimLanes.get(swimLaneKey) ??
 			createEmptyKanbanSwimLaneColumns(options.columnKeys);

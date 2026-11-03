@@ -1,3 +1,5 @@
+import { uiText } from "../../i18n/runtime";
+import { msg } from "@lingui/core/macro";
 /**
  * ====================================================================
  * TaskNotes Card Component System
@@ -267,7 +269,38 @@ export const CARD_COLLAPSE_CHANGED = "tasknotes:card-collapse-changed";
 export function setCardCollapsed(card: HTMLElement, collapsed: boolean): void {
 	card.classList.toggle("tasknotes-settings__card--collapsed", collapsed);
 	const header = card.querySelector<HTMLElement>(":scope > .tasknotes-settings__card-header");
-	if (header) header.title = collapsed ? "Expand card" : "Collapse card";
+	if (header) header.title = collapsed ? uiText(msg({ message: "Expand card", context: "settings/components/CardComponent: setCardCollapsed display" })) : uiText(msg({ message: "Collapse card", context: "settings/components/CardComponent: setCardCollapsed display" }));
+}
+
+const CARD_INFO_CLASS = "tasknotes-settings__card-info";
+const CARD_PRIMARY_TEXT_CLASS = "tasknotes-settings__card-primary-text";
+const CARD_SECONDARY_TEXT_CLASS = "tasknotes-settings__card-secondary-text";
+
+function getCardHeaderInfo(card: Element): HTMLElement | null {
+	return card.querySelector<HTMLElement>(
+		`:scope > .tasknotes-settings__card-header .${CARD_INFO_CLASS}`
+	);
+}
+
+/** Update a card's header title in place without re-rendering the card. */
+export function setCardPrimaryText(card: Element | null | undefined, text: string): void {
+	const primaryText = card && getCardHeaderInfo(card)?.querySelector(`.${CARD_PRIMARY_TEXT_CLASS}`);
+	if (primaryText) primaryText.textContent = text;
+}
+
+/**
+ * Update a card's header subtitle in place without re-rendering the card.
+ * Creates the subtitle when the card was rendered without one.
+ */
+export function setCardSecondaryText(card: Element | null | undefined, text: string): void {
+	const headerInfo = card ? getCardHeaderInfo(card) : null;
+	if (!headerInfo) return;
+	let secondaryText = headerInfo.querySelector(`.${CARD_SECONDARY_TEXT_CLASS}`);
+	if (!secondaryText) {
+		if (!text) return;
+		secondaryText = headerInfo.createSpan(CARD_SECONDARY_TEXT_CLASS);
+	}
+	secondaryText.textContent = text;
 }
 
 /**
@@ -301,7 +334,7 @@ export function createCard(container: HTMLElement, config: CardConfig): HTMLElem
 		dragHandle = header.createDiv("tasknotes-settings__card-drag-handle");
 		dragHandle.textContent = "⋮⋮";
 		dragHandle.draggable = true;
-		dragHandle.title = "Drag to reorder";
+		dragHandle.title = uiText(msg({ message: "Drag to reorder", context: "settings/components/CardComponent: createCard display" }));
 	}
 
 	// Left side of header with color indicator and info
@@ -341,11 +374,11 @@ export function createCard(container: HTMLElement, config: CardConfig): HTMLElem
 
 	// Header info
 	const headerInfo = headerLeft.createDiv("tasknotes-settings__card-info");
-	const primaryText = headerInfo.createSpan("tasknotes-settings__card-primary-text");
+	const primaryText = headerInfo.createSpan(CARD_PRIMARY_TEXT_CLASS);
 	primaryText.textContent = config.header.primaryText;
 
 	if (config.header.secondaryText) {
-		const secondaryText = headerInfo.createSpan("tasknotes-settings__card-secondary-text");
+		const secondaryText = headerInfo.createSpan(CARD_SECONDARY_TEXT_CLASS);
 		secondaryText.textContent = config.header.secondaryText;
 	}
 
@@ -427,7 +460,7 @@ export function createCard(container: HTMLElement, config: CardConfig): HTMLElem
 
 		// Make entire header clickable
 		header.addClass("tasknotes-settings__card-header--clickable");
-		header.title = config.defaultCollapsed ? "Expand card" : "Collapse card";
+		header.title = config.defaultCollapsed ? uiText(msg({ message: "Expand card", context: "settings/components/CardComponent: createCard display" })) : uiText(msg({ message: "Collapse card", context: "settings/components/CardComponent: createCard display" }));
 		header.onclick = (e) => {
 			// Don't trigger if clicking on action buttons
 			if ((e.target as Element).closest(".tasknotes-settings__card-header-actions")) {
@@ -538,7 +571,7 @@ export function createDeleteHeaderButton(
 	return {
 		icon: "trash-2",
 		variant: "delete",
-		tooltip: tooltip || "Delete",
+		tooltip: tooltip || uiText(msg({ message: "Delete", context: "settings/components/CardComponent: createDeleteHeaderButton tooltip" })),
 		onClick,
 	};
 }
@@ -620,8 +653,8 @@ function configureNativeThemeColorPicker(input: ThemeColorTextInput): void {
 	picker.type = "color";
 	picker.addClass(THEME_COLOR_NATIVE_PICKER_CLASS);
 	picker.value = hexColorForNativePicker(input.value) || THEME_COLOR_PICKER_FALLBACK;
-	picker.title = "Open color picker";
-	picker.setAttribute("aria-label", "Open color picker");
+	picker.title = uiText(msg({ message: "Open color picker", context: "settings/components/CardComponent: configureNativeThemeColorPicker display" }));
+	picker.setAttribute("aria-label", uiText(msg({ message: "Open color picker", context: "settings/components/CardComponent: configureNativeThemeColorPicker display" })));
 
 	const syncInputFromPicker = () => {
 		if (input.value === picker.value) return;
@@ -811,7 +844,7 @@ export function createEditHeaderButton(
 	return {
 		icon: "edit",
 		variant: "edit",
-		tooltip: tooltip || "Edit",
+		tooltip: tooltip || uiText(msg({ message: "Edit", context: "settings/components/CardComponent: createEditHeaderButton tooltip" })),
 		onClick,
 	};
 }
@@ -899,7 +932,7 @@ export function createCardUrlInput(placeholder?: string, value?: string): HTMLIn
 
 	// Add pattern validation to accept calendar URL protocols
 	input.pattern = "^(https?|webcals?)://.*";
-	input.title = "Enter an HTTP://, HTTPS://, webcal://, or webcals:// URL";
+	input.title = uiText(msg({ message: "Enter an HTTP://, HTTPS://, webcal://, or webcals:// URL", context: "settings/components/CardComponent: createCardUrlInput display" }));
 
 	if (placeholder) {
 		input.placeholder = placeholder;

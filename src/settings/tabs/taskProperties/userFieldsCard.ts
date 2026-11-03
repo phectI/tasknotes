@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { uiData } from "../../../i18n/dataText";
 import { Setting, setIcon } from "obsidian";
 import TaskNotesPlugin from "../../../main";
 import {
@@ -9,6 +11,8 @@ import {
 	createCardSelect,
 	createCardToggle,
 	CardRow,
+	setCardPrimaryText,
+	setCardSecondaryText,
 } from "../../components/CardComponent";
 import { createFilterSettingsInputs } from "../../components/FilterSettingsComponent";
 import { initializeFieldConfig } from "../../../utils/fieldConfigDefaults";
@@ -33,14 +37,14 @@ function createDefaultValueInput(
 			onChange(value);
 		});
 		row = {
-			label: translate("settings.taskProperties.customUserFields.fields.defaultValue"),
+			label: translate(msg({ message: "Default value:", context: "settings.taskProperties.customUserFields.fields.defaultValue" })),
 			input: inputElement,
 		};
 	} else if (field.type === "number") {
 		// Number field uses number input
 		const input = createCardInput(
 			"number",
-			translate("settings.taskProperties.customUserFields.placeholders.defaultValue"),
+			translate(msg({ message: "Default value", context: "settings.taskProperties.customUserFields.placeholders.defaultValue" })),
 			field.defaultValue !== undefined ? String(field.defaultValue) : ""
 		);
 		input.addEventListener("input", () => {
@@ -56,7 +60,7 @@ function createDefaultValueInput(
 		});
 		inputElement = input;
 		row = {
-			label: translate("settings.taskProperties.customUserFields.fields.defaultValue"),
+			label: translate(msg({ message: "Default value:", context: "settings.taskProperties.customUserFields.fields.defaultValue" })),
 			input: inputElement,
 		};
 	} else if (field.type === "date") {
@@ -64,10 +68,10 @@ function createDefaultValueInput(
 		const currentValue = typeof field.defaultValue === "string" ? field.defaultValue : "none";
 		const select = createCardSelect(
 			[
-				{ value: "none", label: translate("settings.defaults.options.none") },
-				{ value: "today", label: translate("settings.defaults.options.today") },
-				{ value: "tomorrow", label: translate("settings.defaults.options.tomorrow") },
-				{ value: "next-week", label: translate("settings.defaults.options.nextWeek") },
+				{ value: "none", label: translate(msg({ message: "None", context: "settings.defaults.options.none" })) },
+				{ value: "today", label: translate(msg({ message: "Today", context: "settings.defaults.options.today" })) },
+				{ value: "tomorrow", label: translate(msg({ message: "Tomorrow", context: "settings.defaults.options.tomorrow" })) },
+				{ value: "next-week", label: translate(msg({ message: "Next week", context: "settings.defaults.options.nextWeek" })) },
 			],
 			currentValue
 		);
@@ -77,7 +81,7 @@ function createDefaultValueInput(
 		});
 		inputElement = select;
 		row = {
-			label: translate("settings.taskProperties.customUserFields.fields.defaultValue"),
+			label: translate(msg({ message: "Default value:", context: "settings.taskProperties.customUserFields.fields.defaultValue" })),
 			input: inputElement,
 		};
 	} else if (field.type === "list") {
@@ -85,7 +89,7 @@ function createDefaultValueInput(
 		const currentValue = Array.isArray(field.defaultValue) ? field.defaultValue.join(", ") : "";
 		const input = createCardInput(
 			"text",
-			translate("settings.taskProperties.customUserFields.placeholders.defaultValueList"),
+			translate(msg({ message: "Default values (comma-separated)", context: "settings.taskProperties.customUserFields.placeholders.defaultValueList" })),
 			currentValue
 		);
 		input.addEventListener("input", () => {
@@ -103,14 +107,14 @@ function createDefaultValueInput(
 		});
 		inputElement = input;
 		row = {
-			label: translate("settings.taskProperties.customUserFields.fields.defaultValue"),
+			label: translate(msg({ message: "Default value:", context: "settings.taskProperties.customUserFields.fields.defaultValue" })),
 			input: inputElement,
 		};
 	} else {
 		// Text field uses text input
 		const input = createCardInput(
 			"text",
-			translate("settings.taskProperties.customUserFields.placeholders.defaultValue"),
+			translate(msg({ message: "Default value", context: "settings.taskProperties.customUserFields.placeholders.defaultValue" })),
 			typeof field.defaultValue === "string" ? field.defaultValue : ""
 		);
 		input.addEventListener("input", () => {
@@ -119,7 +123,7 @@ function createDefaultValueInput(
 		});
 		inputElement = input;
 		row = {
-			label: translate("settings.taskProperties.customUserFields.fields.defaultValue"),
+			label: translate(msg({ message: "Default value:", context: "settings.taskProperties.customUserFields.fields.defaultValue" })),
 			input: inputElement,
 		};
 	}
@@ -164,12 +168,12 @@ export function renderUserFieldsSection(
 
 	// Add user field button
 	new Setting(container)
-		.setName(translate("settings.taskProperties.customUserFields.addNew.name"))
-		.setDesc(translate("settings.taskProperties.customUserFields.addNew.description"))
+		.setName(translate(msg({ message: "Add new user field", context: "settings.taskProperties.customUserFields.addNew.name" })))
+		.setDesc(translate(msg({ message: "Create a new custom field that will appear in filters and views", context: "settings.taskProperties.customUserFields.addNew.description" })))
 		.addButton((button) =>
 			button
 				.setButtonText(
-					translate("settings.taskProperties.customUserFields.addNew.buttonText")
+					translate(msg({ message: "Add user field", context: "settings.taskProperties.customUserFields.addNew.buttonText" }))
 				)
 				.onClick(async () => {
 					if (!plugin.settings.userFields) {
@@ -238,8 +242,8 @@ function renderUserFieldsList(
 	if (plugin.settings.userFields.length === 0) {
 		showCardEmptyState(
 			container,
-			translate("settings.taskProperties.customUserFields.emptyState"),
-			translate("settings.taskProperties.customUserFields.emptyStateButton"),
+			translate(msg({ message: "No custom user fields configured. Add a field to create custom properties for your tasks.", context: "settings.taskProperties.customUserFields.emptyState" })),
+			translate(msg({ message: "Add user field", context: "settings.taskProperties.customUserFields.emptyStateButton" })),
 			() => {
 				const addUserFieldButton = activeDocument.querySelector(
 					'[data-setting-name="Add new user field"] button'
@@ -255,35 +259,35 @@ function renderUserFieldsList(
 	plugin.settings.userFields.forEach((field, index) => {
 		const nameInput = createCardInput(
 			"text",
-			translate("settings.taskProperties.customUserFields.placeholders.displayName"),
+			translate(msg({ message: "Display name", context: "settings.taskProperties.customUserFields.placeholders.displayName" })),
 			field.displayName
 		);
 		const keyInput = createCardInput(
 			"text",
-			translate("settings.taskProperties.customUserFields.placeholders.propertyKey"),
+			uiData("property-name", "Example persisted frontmatter property identifier, not the user-facing field label"),
 			field.key
 		);
 		const typeSelect = createCardSelect(
 			[
 				{
 					value: "text",
-					label: translate("settings.taskProperties.customUserFields.types.text"),
+					label: translate(msg({ message: "Text", context: "settings.taskProperties.customUserFields.types.text" })),
 				},
 				{
 					value: "number",
-					label: translate("settings.taskProperties.customUserFields.types.number"),
+					label: translate(msg({ message: "Number", context: "settings.taskProperties.customUserFields.types.number" })),
 				},
 				{
 					value: "boolean",
-					label: translate("settings.taskProperties.customUserFields.types.boolean"),
+					label: translate(msg({ message: "Boolean", context: "settings.taskProperties.customUserFields.types.boolean" })),
 				},
 				{
 					value: "date",
-					label: translate("settings.taskProperties.customUserFields.types.date"),
+					label: translate(msg({ message: "Date", context: "settings.taskProperties.customUserFields.types.date" })),
 				},
 				{
 					value: "list",
-					label: translate("settings.taskProperties.customUserFields.types.list"),
+					label: translate(msg({ message: "List", context: "settings.taskProperties.customUserFields.types.list" })),
 				},
 			],
 			field.type
@@ -303,17 +307,13 @@ function renderUserFieldsList(
 			}
 
 			// Update the card header text directly without re-rendering
-			const card = container.querySelector(`[data-card-id="${field.id}"]`);
-			if (card) {
-				const primaryText = card.querySelector(".tasknotes-settings__card-header-primary");
-				if (primaryText) {
-					primaryText.textContent =
-						field.displayName ||
-						translate(
-							"settings.taskProperties.customUserFields.defaultNames.unnamedField"
-						);
-				}
-			}
+			setCardPrimaryText(
+				container.querySelector(`[data-card-id="${field.id}"]`),
+				field.displayName ||
+					translate(
+						msg({ message: "Unnamed field", context: "settings.taskProperties.customUserFields.defaultNames.unnamedField" })
+					)
+			);
 
 			save();
 		});
@@ -326,15 +326,20 @@ function renderUserFieldsList(
 			const duplicate =
 				key.toLowerCase() === "tags" ||
 				plugin.settings.userFields?.some(
-					(other) => other.id !== field.id && other.key.trim().toLowerCase() === key.toLowerCase()
+					(other) =>
+						other.id !== field.id &&
+						other.key.trim().toLowerCase() === key.toLowerCase()
 				) ||
 				Object.entries(plugin.settings.fieldMapping).some(
-					([id, value]) => id !== "archiveTag" && id !== "icsEventTag" && value.toLowerCase() === key.toLowerCase()
+					([id, value]) =>
+						id !== "archiveTag" &&
+						id !== "icsEventTag" &&
+						value.toLowerCase() === key.toLowerCase()
 				);
 			const error = !key
-				? translate("settings.taskProperties.customUserFields.validation.emptyKey")
+				? translate(msg({ message: "Enter a property key.", context: "settings.taskProperties.customUserFields.validation.emptyKey" }))
 				: duplicate
-					? translate("settings.taskProperties.customUserFields.validation.duplicateKey")
+					? translate(msg({ message: "Another property already uses this key.", context: "settings.taskProperties.customUserFields.validation.duplicateKey" }))
 					: "";
 			keyInput.setCustomValidity(error);
 			keyInput.setAttribute("aria-invalid", String(Boolean(error)));
@@ -343,17 +348,11 @@ function renderUserFieldsList(
 			field.key = key;
 
 			// Update the card header secondary text directly without re-rendering
-			const card = container.querySelector(`[data-card-id="${field.id}"]`);
-			if (card) {
-				const secondaryText = card.querySelector(
-					".tasknotes-settings__card-header-secondary"
-				);
-				if (secondaryText) {
-					secondaryText.textContent =
-						field.key ||
-						translate("settings.taskProperties.customUserFields.defaultNames.noKey");
-				}
-			}
+			setCardSecondaryText(
+				container.querySelector(`[data-card-id="${field.id}"]`),
+				field.key ||
+					translate(msg({ message: "no-key", context: "settings.taskProperties.customUserFields.defaultNames.noKey" }))
+			);
 
 			save();
 		});
@@ -411,7 +410,7 @@ function renderUserFieldsList(
 			"tasknotes-settings__collapsible-section-title"
 		);
 		filterHeaderText.textContent = translate(
-			"settings.taskProperties.customUserFields.autosuggestFilters.header"
+			msg({ message: "Autosuggestion filters (advanced)", context: "settings.taskProperties.customUserFields.autosuggestFilters.header" })
 		);
 
 		// Add "Filters On" badge if filters are active
@@ -432,7 +431,9 @@ function renderUserFieldsList(
 				filterBadge.empty();
 				const filterIcon = filterBadge.createSpan();
 				setIcon(filterIcon, "filter");
-				filterBadge.createSpan({ text: "Filters On" });
+				filterBadge.createSpan({
+					text: translate(msg({ message: "Filters on", context: "settings.taskProperties.projectsCard.filtersOn" })),
+				});
 			} else {
 				filterBadge.classList.remove(
 					"tn-static-display-block-2a1b75c9",
@@ -489,10 +490,10 @@ function renderUserFieldsList(
 			header: {
 				primaryText:
 					field.displayName ||
-					translate("settings.taskProperties.customUserFields.defaultNames.unnamedField"),
+					translate(msg({ message: "Unnamed field", context: "settings.taskProperties.customUserFields.defaultNames.unnamedField" })),
 				secondaryText:
 					field.key ||
-					translate("settings.taskProperties.customUserFields.defaultNames.noKey"),
+					translate(msg({ message: "no-key", context: "settings.taskProperties.customUserFields.defaultNames.noKey" })),
 				meta: [
 					createStatusBadge(
 						field.type.charAt(0).toUpperCase() + field.type.slice(1),
@@ -516,7 +517,7 @@ function renderUserFieldsList(
 							save();
 							renderUserFieldsList(container, plugin, save, translate);
 						}
-					}, translate("settings.taskProperties.customUserFields.deleteTooltip")),
+					}, translate(msg({ message: "Delete field", context: "settings.taskProperties.customUserFields.deleteTooltip" }))),
 				],
 			},
 			content: {
@@ -525,19 +526,19 @@ function renderUserFieldsList(
 						rows: [
 							{
 								label: translate(
-									"settings.taskProperties.customUserFields.fields.displayName"
+									msg({ message: "Display name:", context: "settings.taskProperties.customUserFields.fields.displayName" })
 								),
 								input: nameInput,
 							},
 							{
 								label: translate(
-									"settings.taskProperties.customUserFields.fields.propertyKey"
+									msg({ message: "Property key:", context: "settings.taskProperties.customUserFields.fields.propertyKey" })
 								),
 								input: keyInput,
 							},
 							{
 								label: translate(
-									"settings.taskProperties.customUserFields.fields.type"
+									msg({ message: "Type:", context: "settings.taskProperties.customUserFields.fields.type" })
 								),
 								input: typeSelect,
 							},

@@ -1,4 +1,7 @@
-import { App, Modal, TAbstractFile, TFile } from "obsidian";
+import { uiData } from "../i18n/dataText";
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { App, Modal, Notice, TAbstractFile, TFile } from "obsidian";
 
 type Nullable<T> = T | null;
 
@@ -16,6 +19,15 @@ import {
 } from "./taskModalDetailsEditor";
 import { splitFrontmatterAndBody } from "../utils/helpers";
 import { ProjectSelectModal } from "./ProjectSelectModal";
+import { AttachmentFileSuggestModal } from "./AttachmentFileSuggestModal";
+import {
+	TaskModalAttachmentsField,
+	materializeTaskModalAttachments,
+	type MaterializedTaskModalAttachments,
+	type TaskModalAttachmentEntry,
+} from "./taskModalAttachments";
+import { fieldLabelForId } from "../i18n/fieldLabels";
+import { createVaultBinaryFile } from "../services/VaultMutationService";
 import { TaskDependency, Reminder } from "../types";
 import { DEFAULT_DEPENDENCY_RELTYPE, formatDependencyLink } from "../utils/dependencyUtils";
 import { type LinkServices } from "../ui/renderers/linkRenderer";
@@ -175,6 +187,7 @@ export abstract class TaskModal extends Modal {
 
 	protected getLinkServices(): LinkServices {
 		return {
+			translate: this.t.bind(this),
 			metadataCache: this.plugin.app.metadataCache,
 			workspace: this.plugin.app.workspace,
 			sourcePath:
@@ -287,8 +300,8 @@ export abstract class TaskModal extends Modal {
 				this.addBlockedByDependency(dependency);
 			},
 			translate: (key) => this.t(key),
-			noEligibleTasksMessageKey: "contextMenus.task.dependencies.notices.noEligibleTasks",
-			openFailedMessageKey: "contextMenus.task.dependencies.notices.updateFailed",
+			noEligibleTasksMessageKey: msg({ message: "No matching tasks available", context: "contextMenus.task.dependencies.notices.noEligibleTasks" }),
+			openFailedMessageKey: msg({ message: "Failed to update dependencies", context: "contextMenus.task.dependencies.notices.updateFailed" }),
 			logOperation: "open-blocked-by-selector",
 		});
 	}
@@ -310,8 +323,8 @@ export abstract class TaskModal extends Modal {
 				this.addBlockingTaskFromPath(selected.path);
 			},
 			translate: (key) => this.t(key),
-			noEligibleTasksMessageKey: "contextMenus.task.dependencies.notices.noEligibleTasks",
-			openFailedMessageKey: "contextMenus.task.dependencies.notices.updateFailed",
+			noEligibleTasksMessageKey: msg({ message: "No matching tasks available", context: "contextMenus.task.dependencies.notices.noEligibleTasks" }),
+			openFailedMessageKey: msg({ message: "Failed to update dependencies", context: "contextMenus.task.dependencies.notices.updateFailed" }),
 			logOperation: "open-blocking-selector",
 		});
 	}
@@ -322,8 +335,8 @@ export abstract class TaskModal extends Modal {
 	protected originalDetails = "";
 	protected dueDate = "";
 	protected scheduledDate = "";
-	protected priority = "normal";
-	protected status = "open";
+	protected priority: string = uiData("normal", "Persisted priority value; preserve user metadata and matching semantics");
+	protected status: string = uiData("open", "Persisted status value; preserve user metadata and matching semantics");
 	protected contexts = "";
 	protected projects = "";
 	protected tags = "";
@@ -346,6 +359,10 @@ export abstract class TaskModal extends Modal {
 	// Project link storage
 	protected selectedProjectItems: TaskModalProjectItem[] = [];
 
+	// Attachments: linked vault files plus disk files imported on save
+	protected attachmentEntries: TaskModalAttachmentEntry[] = [];
+	protected attachmentsField: TaskModalAttachmentsField | null = null;
+
 	// Subtask storage - tracks tasks that should become subtasks of this task
 	protected selectedSubtaskFiles: TAbstractFile[] = [];
 	protected initialSubtaskFiles: TAbstractFile[] = [];
@@ -353,8 +370,7 @@ export abstract class TaskModal extends Modal {
 	// UI elements
 	protected titleInput: TaskModalTitleInputElement =
 		undefined as unknown as TaskModalTitleInputElement;
-	protected detailsInput: HTMLTextAreaElement =
-		undefined as unknown as HTMLTextAreaElement; // Legacy - kept for compatibility
+	protected detailsInput: HTMLTextAreaElement = undefined as unknown as HTMLTextAreaElement; // Legacy - kept for compatibility
 	protected detailsMarkdownEditor: EmbeddableMarkdownEditor | null = null;
 	protected contextsInput: HTMLInputElement = undefined as unknown as HTMLInputElement;
 	protected projectsInput: HTMLInputElement = undefined as unknown as HTMLInputElement;
@@ -390,7 +406,7 @@ export abstract class TaskModal extends Modal {
 		return this.plugin;
 	}
 
-	protected t(key: string, params?: Record<string, string | number>): string {
+	protected t(key: MessageDescriptor, params?: Record<string, string | number>): string {
 		return this.plugin.i18n.translate(key, params);
 	}
 
@@ -431,7 +447,8 @@ export abstract class TaskModal extends Modal {
 	}
 
 	abstract initializeFormData(): Promise<void>;
-	abstract handleSave(): Promise<void>;
+	/** Returns false when validation or saving failed and the modal must stay open. */
+	abstract handleSave(): Promise<boolean | void>;
 	abstract getModalTitle(): string;
 
 	protected async handleSubmitShortcut(_shift: boolean): Promise<void> {
@@ -524,7 +541,7 @@ export abstract class TaskModal extends Modal {
 		this.titleInput = this.createTitleTextarea(
 			titleContainer,
 			"title-input",
-			this.t("modals.task.titlePlaceholder")
+			this.t(msg({ message: "What needs to be done?", context: "modals.task.titlePlaceholder" }))
 		);
 	}
 
@@ -562,7 +579,7 @@ export abstract class TaskModal extends Modal {
 		return [
 			{
 				iconName: "circle",
-				tooltip: this.t("modals.task.actions.status"),
+				tooltip: this.t(msg({ message: "Set status", context: "modals.task.actions.status" })),
 				onClick: (_, event) => {
 					this.showStatusContextMenu(event);
 				},
@@ -570,7 +587,7 @@ export abstract class TaskModal extends Modal {
 			},
 			{
 				iconName: "star",
-				tooltip: this.t("modals.task.actions.priority"),
+				tooltip: this.t(msg({ message: "Set priority", context: "modals.task.actions.priority" })),
 				onClick: (_, event) => {
 					this.showPriorityContextMenu(event);
 				},
@@ -578,7 +595,7 @@ export abstract class TaskModal extends Modal {
 			},
 			{
 				iconName: "calendar",
-				tooltip: this.t("modals.task.actions.due"),
+				tooltip: this.t(msg({ message: "Set due date", context: "modals.task.actions.due" })),
 				onClick: (_, event) => {
 					this.showDateContextMenu(event, "due");
 				},
@@ -586,7 +603,7 @@ export abstract class TaskModal extends Modal {
 			},
 			{
 				iconName: "calendar-clock",
-				tooltip: this.t("modals.task.actions.scheduled"),
+				tooltip: this.t(msg({ message: "Set scheduled date", context: "modals.task.actions.scheduled" })),
 				onClick: (_, event) => {
 					this.showDateContextMenu(event, "scheduled");
 				},
@@ -594,7 +611,7 @@ export abstract class TaskModal extends Modal {
 			},
 			{
 				iconName: "refresh-ccw",
-				tooltip: this.t("modals.task.actions.recurrence"),
+				tooltip: this.t(msg({ message: "Set recurrence", context: "modals.task.actions.recurrence" })),
 				onClick: (_, event) => {
 					this.showRecurrenceContextMenu(event);
 				},
@@ -602,7 +619,7 @@ export abstract class TaskModal extends Modal {
 			},
 			{
 				iconName: "bell",
-				tooltip: this.t("modals.task.actions.reminders"),
+				tooltip: this.t(msg({ message: "Set reminders", context: "modals.task.actions.reminders" })),
 				onClick: (_, event) => {
 					this.showReminderContextMenu(event);
 				},
@@ -661,12 +678,12 @@ export abstract class TaskModal extends Modal {
 
 		if (shouldShowTitle && (isEditModal || isCreationWithNLP)) {
 			const titleLabel = this.detailsContainer.createDiv("detail-label");
-			titleLabel.textContent = this.t("modals.task.titleLabel");
+			titleLabel.textContent = this.t(msg({ message: "Title", context: "modals.task.titleLabel" }));
 
 			const titleInputDetailed = this.createTitleTextarea(
 				this.detailsContainer,
 				"title-input-detailed",
-				this.t("modals.task.titleDetailedPlaceholder")
+				this.t(msg({ message: "Task title...", context: "modals.task.titleDetailedPlaceholder" }))
 			);
 
 			// Store reference for modals that use this as their title input
@@ -682,9 +699,9 @@ export abstract class TaskModal extends Modal {
 			this.detailsMarkdownEditor = createTaskModalDetailsEditor({
 				app: this.app,
 				parent: rightColumn,
-				label: this.t("modals.task.detailsLabel"),
+				label: this.t(msg({ message: "Details", context: "modals.task.detailsLabel" })),
 				value: this.details,
-				placeholder: this.t("modals.task.detailsPlaceholder"),
+				placeholder: this.t(msg({ message: "Add more details...", context: "modals.task.detailsPlaceholder" })),
 				file: this.getModalEditorFile(),
 				tabMovesFocus: this.plugin.settings.taskModalTabMovesFocus,
 				onChange: (value) => {
@@ -762,6 +779,7 @@ export abstract class TaskModal extends Modal {
 			"time-estimate": (container) => this.createTimeEstimateField(container),
 			projects: (container) => this.createProjectsField(container),
 			subtasks: (container) => this.createSubtasksField(container),
+			attachments: (container) => this.createAttachmentsField(container),
 			"blocked-by": (container) => this.createBlockedByField(container),
 			blocking: (container) => this.createBlockingField(container),
 		};
@@ -833,6 +851,70 @@ export abstract class TaskModal extends Modal {
 		});
 
 		this.renderOrganizationLists();
+	}
+
+	protected createAttachmentsField(container: HTMLElement): void {
+		this.attachmentsField = new TaskModalAttachmentsField({
+			container,
+			label: fieldLabelForId("attachments"),
+			translate: (key, params) => this.t(key, params),
+			getEntries: () => this.attachmentEntries,
+			setEntries: (entries) => {
+				this.attachmentEntries = entries;
+			},
+			pickVaultFile: (onChoose) => {
+				new AttachmentFileSuggestModal(
+					this.app,
+					this.plugin,
+					onChoose,
+					this.getCurrentTaskPath()
+				).open();
+			},
+			openAttachment: (path) => {
+				void this.app.workspace.openLinkText(path, "", "tab");
+			},
+			resolveExists: (path) => this.app.vault.getAbstractFileByPath(path) instanceof TFile,
+			onDuplicate: (name) => {
+				new Notice(
+					this.t(msg({ message: "\"{name}\" is already attached", context: "modals.task.attachments.duplicateNotice" }), { name })
+				);
+			},
+			onUnsupportedName: (name) => {
+				new Notice(
+					this.t(msg({ message: "\"{name}\" can't be attached. Rename it so it has a file extension and no [ ] # or | characters.", context: "modals.task.attachments.unsupportedNameNotice" }), { name })
+				);
+			},
+		});
+	}
+
+	/**
+	 * Copy files picked from disk into the vault. Called only while saving so a
+	 * discarded modal never writes attachment files.
+	 */
+	protected async importPendingAttachments(
+		sourcePath: string
+	): Promise<MaterializedTaskModalAttachments> {
+		try {
+			const imported = await materializeTaskModalAttachments(this.attachmentEntries, {
+				sourcePath,
+				getAvailablePath: (filename, source) =>
+					this.app.fileManager.getAvailablePathForAttachment(filename, source),
+				writeBinary: (path, data) => createVaultBinaryFile(this.app, path, data),
+				trashFile: async (path) => {
+					const file = this.app.vault.getAbstractFileByPath(path);
+					if (file instanceof TFile) await this.app.fileManager.trashFile(file);
+				},
+			});
+			return {
+				references: imported.references,
+				rollback: async () => {
+					await imported.rollback();
+					this.attachmentsField?.render();
+				},
+			};
+		} finally {
+			this.attachmentsField?.render();
+		}
 	}
 
 	private getOrganizationFieldContext(): TaskModalOrganizationFieldContext {
@@ -922,7 +1004,7 @@ export abstract class TaskModal extends Modal {
 		if (this.isEditMode()) {
 			leadingButtons.push({
 				className: "tn-task-modal__open-note-button",
-				text: this.t("modals.task.buttons.openNote"),
+				text: this.t(msg({ message: "Open note", context: "modals.task.buttons.openNote" })),
 				onClick: () => {
 					void this.openTaskNote();
 				},
@@ -944,7 +1026,7 @@ export abstract class TaskModal extends Modal {
 
 	protected getActionButtonContext(): TaskModalActionButtonContext {
 		return {
-			translate: (key: string) => this.t(key),
+			translate: (key: MessageDescriptor) => this.t(key),
 		};
 	}
 
@@ -1159,9 +1241,10 @@ export abstract class TaskModal extends Modal {
 		const parentTask = parentPath
 			? await this.plugin.cacheManager.getTaskInfo(parentPath)
 			: null;
-		const creationDefaults = parentFile instanceof TFile && parentTask
-			? buildSubtaskCreationPrePopulatedValues(this.plugin, parentTask, parentFile)
-			: undefined;
+		const creationDefaults =
+			parentFile instanceof TFile && parentTask
+				? buildSubtaskCreationPrePopulatedValues(this.plugin, parentTask, parentFile)
+				: undefined;
 
 		await openTaskModalTaskSelector({
 			plugin: this.plugin,
@@ -1179,8 +1262,8 @@ export abstract class TaskModal extends Modal {
 				}
 			},
 			translate: (key) => this.t(key),
-			noEligibleTasksMessageKey: "modals.task.organization.notices.noEligibleSubtasks",
-			openFailedMessageKey: "modals.task.organization.notices.subtaskSelectFailed",
+			noEligibleTasksMessageKey: msg({ message: "No eligible tasks available to assign as subtasks", context: "modals.task.organization.notices.noEligibleSubtasks" }),
+			openFailedMessageKey: msg({ message: "Failed to open subtask selector", context: "modals.task.organization.notices.subtaskSelectFailed" }),
 			logOperation: "open-subtask-selector",
 		});
 	}
