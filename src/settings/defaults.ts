@@ -135,6 +135,7 @@ export const DEFAULT_CALENDAR_VIEW_SETTINGS: CalendarViewSettings = {
 	customDayCount: 3, // Default to 3 days as requested in issue #282
 	// Time settings
 	slotDuration: "00:30:00", // 30-minute slots
+	slotHeight: 24, // Height of one slot in px; 15-minute slots therefore take half the height of an hour
 	slotMinTime: "00:00:00", // Start at midnight
 	slotMaxTime: "24:00:00", // End at midnight next day
 	scrollTime: "08:00:00", // Scroll to 8 AM
@@ -407,6 +408,8 @@ export const DEFAULT_SETTINGS: TaskNotesSettings = {
 	// Recurring task behavior defaults
 	maintainDueDateOffsetInRecurring: false,
 	resetCheckboxesOnRecurrence: false, // Off by default - user opts in
+	// On for new setups; settings saved before it existed load with it off (#2521).
+	resetRecurringStatusAfterOccurrence: true,
 	// Frontmatter link format defaults
 	useFrontmatterMarkdownLinks: false, // Default to wikilinks for compatibility
 	// OAuth Calendar Integration defaults

@@ -138,6 +138,8 @@ type VirtualScrollerWithContainer = {
 
 type KanbanEphemeralState = {
 	scrollTop?: unknown;
+	boardScrollLeft?: unknown;
+	boardScrollTop?: unknown;
 	columnScroll?: unknown;
 };
 
@@ -240,6 +242,10 @@ export class KanbanView extends BasesViewBase {
 	private draggedFromSwimlane: string | null = null; // Track source swimlane for list property handling
 	private dropTargetPath: string | null = null; // Card-level drop position tracking
 	private pendingRender = false; // Deferred render while dragging
+	// Scroll state captured before the first of any overlapping renders. A render
+	// empties the board, so state read mid-render would record scroll positions of 0.
+	private scrollStateBeforeRender: unknown = null;
+	private activeScrollPreservingRenders = 0;
 	private dropAbove = true; // Whether drop is above or below target card
 	private dragOverRafId = 0; // rAF handle for throttled dragover
 	private dragContainer: HTMLElement | null = null; // Container holding siblings during drag
@@ -382,18 +388,36 @@ export class KanbanView extends BasesViewBase {
 			this.debugLog("ON-DATA-UPDATED: normal render (no suppression active)");
 		}
 
-		const savedState = this.getEphemeralState();
-		try {
-			void this.render();
-		} catch (error) {
+		void this.renderPreservingScroll().catch((error: unknown) => {
 			tasknotesLogger.error(`[TaskNotes][${this.type}] Render error:`, {
 				category: "internal",
 				operation: "render-kanban-view",
 				error: error,
 			});
-			this.renderError(error as Error);
+			this.renderError(error instanceof Error ? error : new Error(String(error)));
+		});
+	}
+
+	/**
+	 * Re-render the board and restore board, column and swimlane scroll positions
+	 * once the render has finished. Rendering empties the board, which resets its
+	 * scroll offsets, so the state must be captured before and restored after.
+	 */
+	private async renderPreservingScroll(): Promise<void> {
+		if (this.activeScrollPreservingRenders === 0) {
+			this.scrollStateBeforeRender = this.getEphemeralState();
 		}
-		this.setEphemeralState(savedState);
+		const savedState = this.scrollStateBeforeRender;
+		this.activeScrollPreservingRenders++;
+		try {
+			await this.render();
+		} finally {
+			this.activeScrollPreservingRenders--;
+			if (this.activeScrollPreservingRenders === 0) {
+				this.scrollStateBeforeRender = null;
+			}
+			this.setEphemeralState(savedState);
+		}
 	}
 
 	/**
@@ -504,6 +528,8 @@ export class KanbanView extends BasesViewBase {
 		return {
 			...baseStateObject,
 			scrollTop: this.rootElement?.scrollTop || 0,
+			boardScrollLeft: this.boardEl?.scrollLeft || 0,
+			boardScrollTop: this.boardEl?.scrollTop || 0,
 			columnScroll,
 		};
 	}
@@ -516,15 +542,27 @@ export class KanbanView extends BasesViewBase {
 		super.setEphemeralState(state);
 		const columnScroll = getColumnScrollState(state);
 
-		// Restore board-level horizontal scroll
-		if (typeof state.scrollTop === "number" && this.rootElement) {
-			const scrollTop = state.scrollTop;
-			window.requestAnimationFrame(() => {
-				if (this.rootElement && this.rootElement.isConnected) {
-					this.rootElement.scrollTop = scrollTop;
-				}
-			});
-		}
+		// Restore the board's own scroll offsets. The board is the horizontal
+		// scroller, and the vertical one when swimlanes are shown. Restore now to
+		// avoid a visible jump, and again next frame in case layout was pending.
+		const boardScrollLeft =
+			typeof state.boardScrollLeft === "number" ? state.boardScrollLeft : null;
+		const boardScrollTop =
+			typeof state.boardScrollTop === "number" ? state.boardScrollTop : null;
+		const restoreBoardScroll = () => {
+			if (!this.boardEl?.isConnected) return;
+			if (boardScrollLeft !== null) this.boardEl.scrollLeft = boardScrollLeft;
+			if (boardScrollTop !== null) this.boardEl.scrollTop = boardScrollTop;
+		};
+		restoreBoardScroll();
+
+		const rootScrollTop = typeof state.scrollTop === "number" ? state.scrollTop : null;
+		window.requestAnimationFrame(() => {
+			if (rootScrollTop !== null && this.rootElement?.isConnected) {
+				this.rootElement.scrollTop = rootScrollTop;
+			}
+			restoreBoardScroll();
+		});
 
 		// Restore column scroll positions after render completes
 		if (columnScroll) {
@@ -1297,6 +1335,7 @@ export class KanbanView extends BasesViewBase {
 			sortOrderValues: isSortOrderInSortConfig(this.dataAdapter, sortOrderField)
 				? this.getSortOrderValues(taskNotes, sortOrderField)
 				: undefined,
+			sortOrderDirection: getSortOrderDirection(this.dataAdapter, sortOrderField),
 			statusConfigs: this.plugin.settings.customStatuses || [],
 			priorityConfigs:
 				this.plugin.priorityManager?.getAllPriorities?.() ||
@@ -2255,7 +2294,7 @@ export class KanbanView extends BasesViewBase {
 		if (!newOrder) return;
 
 		this.saveSwimLaneOrder(swimLanePropertyId, newOrder);
-		await this.render();
+		await this.renderPreservingScroll();
 	}
 
 	private setupColumnHeaderDragHandlers(header: HTMLElement): void {
@@ -2335,7 +2374,7 @@ export class KanbanView extends BasesViewBase {
 				await this.saveColumnOrder(groupBy, newOrder);
 
 				// Re-render
-				await this.render();
+				await this.renderPreservingScroll();
 			})();
 		});
 
@@ -2458,7 +2497,7 @@ export class KanbanView extends BasesViewBase {
 								newOrder.splice(dropIndex, 0, this.draggedColumnKey);
 
 								await this.saveColumnOrder(groupBy, newOrder);
-								await this.render();
+								await this.renderPreservingScroll();
 							}
 						}
 					}
@@ -2956,6 +2995,10 @@ export class KanbanView extends BasesViewBase {
 		this.draggedSourceSwimlanes.clear();
 		this.touchDragType = null;
 		this.draggedColumnKey = null;
+		if (this.pendingRender) {
+			this.pendingRender = false;
+			this.debouncedRefresh();
+		}
 	}
 
 	private handleAutoScroll(touchX: number): void {
@@ -4282,6 +4325,13 @@ export class KanbanView extends BasesViewBase {
 		const win = this.containerEl.ownerDocument.defaultView || window;
 		this.updateDebounceTimer = win.setTimeout(() => {
 			void (async () => {
+				// Match onDataUpdated: keep the dragged card and its occurrence cache
+				// intact, even if this timer was scheduled before the drag began.
+				if (this.draggedTaskPath) {
+					this.pendingRender = true;
+					this.updateDebounceTimer = null;
+					return;
+				}
 				// Respect render suppression — a drop is still in-flight.
 				// The post-drop render (schedulePostDropRender) will fire the
 				// guaranteed render once the writes have settled.
@@ -4297,11 +4347,8 @@ export class KanbanView extends BasesViewBase {
 					activeDropCount: this.activeDropCount,
 					suppressRenderRemaining: Math.max(0, this.suppressRenderUntil - Date.now()),
 				});
-				const savedState = this.getEphemeralState();
-				await this.render();
 				this.updateDebounceTimer = null;
-				// Restore scroll state after render completes
-				this.setEphemeralState(savedState);
+				await this.renderPreservingScroll();
 			})();
 		}, 150);
 	}
@@ -4727,6 +4774,7 @@ export class KanbanView extends BasesViewBase {
 	 * Override from Component base class.
 	 */
 	onunload(): void {
+		this.pendingRender = false;
 		this.clearTouchDragState();
 		if (this.postDropTimer) {
 			window.clearTimeout(this.postDropTimer);
